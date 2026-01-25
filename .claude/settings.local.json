@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__acp__Edit",
+      "mcp__MiniMax__understand_image",
+      "mcp__acp__Write",
+      "Bash(go build:*)",
+      "mcp__acp__Bash",
+      "Bash(go install:*)"
+    ]
+  }
+}

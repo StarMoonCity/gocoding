@@ -33,6 +33,7 @@ type Model struct {
 	errMsg         string
 	layoutMode     LayoutMode
 	showDetails    bool
+	searchQuery    string // 搜索查询字符串
 }
 
 type LayoutMode int
@@ -60,6 +61,7 @@ const (
 	StateIDEMenu
 	StateViewDetail
 	StateEditDescription
+	StateSearch
 )
 
 type DialogModel struct {
@@ -101,9 +103,10 @@ func (i listItem) FilterValue() string { return i.project.Alias }
 func NewModel(store *models.ProjectStore) *Model {
 	ideExec := commands.NewIDEExecutor()
 	m := &Model{
-		store:   store,
-		ideExec: ideExec,
-		state:   StateList,
+		store:        store,
+		ideExec:      ideExec,
+		state:        StateList,
+		searchQuery:  "",
 	}
 
 	items := make([]list.Item, len(store.Projects))
@@ -145,6 +148,17 @@ func NewModel(store *models.ProjectStore) *Model {
 
 	// 初始化Viewport
 	m.viewport = viewport.New(0, 0)
+
+	// 自动定位到最近打开的项目
+	if store.Len() > 0 {
+		recent := store.GetMostRecentlyOpened()
+		if recent != nil {
+			index := store.GetIndexByProject(recent.ID)
+			if index >= 0 {
+				m.list.Select(index)
+			}
+		}
+	}
 
 	return m
 }

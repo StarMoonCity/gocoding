@@ -35,6 +35,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleViewDetailKeyMsg(msg)
 		case StateEditDescription:
 			return m.handleEditDescriptionKeyMsg(msg)
+		case StateSearch:
+			return m.handleSearchKeyMsg(msg)
 		}
 	}
 
@@ -65,6 +67,11 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.list.CursorDown()
 	case "k", "up":
 		m.list.CursorUp()
+	case "/":
+		// 进入搜索状态
+		m.state = StateSearch
+		m.searchQuery = ""
+		return m, nil
 	case "n":
 		m.state = StateAddProject
 		m.input.Reset()
@@ -283,6 +290,18 @@ func (m *Model) openWithIDE(ideType models.IDEType) (tea.Model, tea.Cmd) {
 		})
 	}
 
+	// 按最后打开时间排序
+	m.store.SortByLastOpened()
+
+	// 重新渲染列表
+	items := make([]list.Item, len(m.store.Projects))
+	for i, p := range m.store.Projects {
+		items[i] = listItem{project: p}
+	}
+	m.list.SetItems(items)
+	// 定位到最近打开的项目（第一个）
+	m.list.Select(0)
+
 	m.state = StateList
 	return m, nil
 }
@@ -312,4 +331,76 @@ func (m *Model) handleEditDescriptionKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd)
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+func (m *Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		// 退出搜索状态
+		m.state = StateList
+		m.searchQuery = ""
+		m.updateListItems()
+		return m, nil
+	case "enter":
+		// 打开选中的项目
+		if len(m.list.Items()) > 0 {
+			m.state = StateIDEMenu
+			for _, opt := range m.ideMenu.options {
+				m.ideMenu.available[opt.Type] = m.ideExec.IsIDEAvailable(opt.Type)
+			}
+		}
+		return m, nil
+	case "j", "down":
+		m.list.CursorDown()
+		return m, nil
+	case "k", "up":
+		m.list.CursorUp()
+		return m, nil
+	case "backspace":
+		// 删除最后一个字符
+		if len(m.searchQuery) > 0 {
+			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+		}
+		m.updateListItems()
+		return m, nil
+	case "ctrl+h":
+		// Ctrl+H 也支持删除
+		if len(m.searchQuery) > 0 {
+			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+		}
+		m.updateListItems()
+		return m, nil
+	case "1":
+		if len(m.list.Items()) > 0 {
+			return m.openWithIDE(models.IDEClaudeCode)
+		}
+	case "2":
+		if len(m.list.Items()) > 0 {
+			return m.openWithIDE(models.IDEVSCode)
+		}
+	case "3":
+		if len(m.list.Items()) > 0 {
+			return m.openWithIDE(models.IDEOpenCode)
+		}
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	default:
+		// 处理搜索输入
+		if len(msg.Runes) > 0 {
+			m.searchQuery += string(msg.Runes[0])
+		}
+		// 更新列表显示
+		m.updateListItems()
+	}
+	return m, nil
+}
+
+// updateListItems 根据搜索查询更新列表项目
+func (m *Model) updateListItems() {
+	results := m.store.Search(m.searchQuery)
+	items := make([]list.Item, len(results))
+	for i, p := range results {
+		items[i] = listItem{project: p}
+	}
+	m.list.SetItems(items)
 }

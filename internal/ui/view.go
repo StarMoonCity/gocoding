@@ -46,6 +46,8 @@ func (m *Model) View() string {
 		return m.viewViewDetail()
 	case StateEditDescription:
 		return m.viewEditDescription()
+	case StateSearch:
+		return m.viewSearch()
 	default:
 		return m.viewList()
 	}
@@ -119,18 +121,18 @@ func (m *Model) renderHelpText() string {
 	case HelpTextCompact:
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
-			Align(lipgloss.Center).
-			Render("↑/↓ 移动 | n 添加 | q 退出")
+			MarginLeft(config.paddingX).
+			Render("↑/↓ 移动 | n 添加 | / 搜索 | q 退出")
 	case HelpTextNormal:
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
-			Align(lipgloss.Center).
-			Render("↑/↓ j/k 移动 | n 添加 | r 重命名 | d 删除 | enter 选择 | q 退出")
+			MarginLeft(config.paddingX).
+			Render("↑/↓ j/k 移动 | n 添加 | / 搜索 | r 重命名 | d 删除 | enter 选择 | q 退出")
 	default:
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
-			Align(lipgloss.Center).
-			Render("↑/↓ j/k 导航 | n 添加 | v 详情 | e 描述 | r 重命名 | d 删除 | enter IDE | 1/2/3 快速打开 | q 退出")
+			MarginLeft(config.paddingX).
+			Render("↑/↓ j/k 导航 | / 搜索 | n 添加 | v 详情 | e 描述 | r 重命名 | d 删除 | enter IDE | 1/2/3 快速打开 | q 退出")
 	}
 }
 
@@ -186,5 +188,66 @@ func (m *Model) renderDoubleColumn(config LayoutConfig) string {
 		leftView,
 		lipgloss.NewStyle().Width(config.columnGap).Render(""),
 		rightView,
+	)
+}
+
+// viewSearch 搜索视图
+func (m *Model) viewSearch() string {
+	config := m.calculateLayout(m.width, m.height)
+
+	// 搜索框
+	searchBox := lipgloss.NewStyle().
+		Foreground(PrimaryColor).
+		Background(lipgloss.Color("#1a1a2e")).
+		Padding(0, 1).
+		Render("搜索: " + m.searchQuery + "_")
+
+	// 搜索状态提示
+	statusText := fmt.Sprintf("%d/%d 项目", len(m.list.Items()), m.store.Len())
+
+	status := lipgloss.NewStyle().
+		Foreground(SecondaryColor).
+		MarginLeft(config.paddingX).
+		Render(statusText)
+
+	// 帮助文本
+	helpText := lipgloss.NewStyle().
+		Foreground(SecondaryColor).
+		MarginLeft(config.paddingX).
+		Render("↑/↓ j/k 选择 | enter IDE | 1/2/3 快速打开 | backspace 删除 | esc 返回")
+
+	// 渲染列表
+	listView := m.renderSingleColumn(config)
+
+	emptyMsg := ""
+	if len(m.list.Items()) == 0 {
+		emptyMsg = lipgloss.NewStyle().
+			Foreground(SecondaryColor).
+			Align(lipgloss.Center).
+			Padding(1, 0).
+			Render("没有匹配的项目")
+	}
+
+	// 主内容区域
+	mainContent := lipgloss.NewStyle().
+		Width(m.width - config.paddingX*2).
+		Align(lipgloss.Center).
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				searchBox,
+				"",
+				listView,
+				emptyMsg,
+				"",
+				status,
+				"",
+				helpText,
+			),
+		)
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		mainContent,
 	)
 }

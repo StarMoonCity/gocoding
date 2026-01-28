@@ -95,6 +95,71 @@ func (s *ProjectStore) SortByLastOpened() {
 	s.Projects = sortProjectsByLastOpened(s.Projects)
 }
 
+// Search 搜索项目（模糊匹配别名、路径、描述）
+func (s *ProjectStore) Search(query string) []Project {
+	if query == "" {
+		return s.Projects
+	}
+	var results []Project
+	lowerQuery := toLower(query)
+	for _, p := range s.Projects {
+		if containsLower(p.Alias, lowerQuery) ||
+			containsLower(p.Path, lowerQuery) ||
+			containsLower(p.Description, lowerQuery) {
+			results = append(results, p)
+		}
+	}
+	return results
+}
+
+// GetMostRecentlyOpened 返回最近打开的项目
+func (s *ProjectStore) GetMostRecentlyOpened() *Project {
+	if len(s.Projects) == 0 {
+		return nil
+	}
+	s.SortByLastOpened()
+	return &s.Projects[0]
+}
+
+// GetIndexByProject 返回项目在列表中的索引
+func (s *ProjectStore) GetIndexByProject(id string) int {
+	for i, p := range s.Projects {
+		if p.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+func toLower(s string) string {
+	result := make([]byte, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			result[i] = c + 32
+		} else {
+			result[i] = c
+		}
+	}
+	return string(result)
+}
+
+func containsLower(s, substr string) bool {
+	return toLower(s) == toLower(substr) ||
+		len(s) > len(substr) && toLower(s[:len(substr)]) == substr ||
+		len(s) > len(substr) && toLower(s[len(s)-len(substr):]) == substr ||
+		len(s) > len(substr) && containsSubstring(toLower(s), substr)
+}
+
+func containsSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
 func sortProjectsByLastOpened(projects []Project) []Project {
 	for i := 0; i < len(projects)-1; i++ {
 		for j := i + 1; j < len(projects); j++ {

@@ -204,6 +204,9 @@ func NewModel(store *models.ProjectStore) *Model {
 	// 初始化模型配置输入框
 	m.initProviderInputs()
 
+	// 初始化模型配置列表
+	m.initProviderList()
+
 	return m
 }
 
@@ -222,6 +225,17 @@ func (m *Model) initProviderInputs() {
 	m.providerModelInput.Placeholder = "模型名称 (如 MiniMax-M2.7-highspeed)"
 }
 
+// initProviderList 初始化模型配置列表
+func (m *Model) initProviderList() {
+	delegate := list.NewDefaultDelegate()
+	delegate.SetSpacing(0)
+	m.providerList = list.New(nil, delegate, 60, 14)
+	m.providerList.SetShowTitle(false)
+	m.providerList.SetShowStatusBar(false)
+	m.providerList.SetShowHelp(false)
+	m.providerList.SetFilteringEnabled(true)
+}
+
 // SetProviderStore 设置模型配置存储
 func (m *Model) SetProviderStore(store *models.ModelProviderStore) {
 	m.providerStore = store
@@ -238,13 +252,7 @@ func (m *Model) updateProviderListItems() {
 	for i, p := range m.providerStore.Providers {
 		items[i] = providerListItem{provider: p}
 	}
-	delegate := list.NewDefaultDelegate()
-	delegate.SetSpacing(0)
-	m.providerList = list.New(items, delegate, 60, 14)
-	m.providerList.SetShowTitle(false)
-	m.providerList.SetShowStatusBar(false)
-	m.providerList.SetShowHelp(false)
-	m.providerList.SetFilteringEnabled(true)
+	m.providerList.SetItems(items)
 }
 
 // SetState 设置应用状态

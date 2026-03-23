@@ -428,9 +428,9 @@ func (m *Model) updateListItems() {
 // handleProviderListKeyMsg 处理配置列表按键
 func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "j", "down":
+	case "j", "down", "ctrl+n":
 		m.providerList.CursorDown()
-	case "k", "up":
+	case "k", "up", "ctrl+p":
 		m.providerList.CursorUp()
 	case "n":
 		// 新增配置
@@ -514,12 +514,9 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "esc":
 		m.state = StateList
-	case "ctrl+c", "ctrl+q":
+	case "ctrl+c", "ctrl+q", "q":
 		return m, tea.Quit
 	}
-
-	// 更新列表
-	m.providerList, _ = m.providerList.Update(msg)
 	return m, nil
 }
 

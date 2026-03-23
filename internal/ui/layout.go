@@ -29,6 +29,9 @@ func (m *Model) SetSize(width, height int) {
 
 	m.list.SetSize(config.listWidth, config.listHeight)
 
+	// 设置模型配置列表大小
+	m.providerList.SetSize(60, config.listHeight)
+
 	// 设置文本区域大小
 	m.ta.SetWidth(width - 10)
 	m.ta.SetHeight(5)

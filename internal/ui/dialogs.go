@@ -252,7 +252,7 @@ func (m *Model) viewProviderList() string {
 	helpText := lipgloss.NewStyle().
 		Foreground(SecondaryColor).
 		Align(lipgloss.Center).
-		Render("↑/↓ j/k 选择 | n 新增 | e 编辑 | d 删除 | a 激活 | esc 返回")
+		Render("↑/↓ j/k 选择 | n 新增 | e 编辑 | d 删除 | a 激活 | q/esc 退出")
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).

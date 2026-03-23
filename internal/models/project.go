@@ -2,8 +2,11 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -23,6 +26,24 @@ type Project struct {
 	CreatedAt  time.Time `json:"created_at"`
 	LastOpened time.Time `json:"last_opened"`
 	OpenCount  int       `json:"open_count"`
+}
+
+// ValidatePath checks if a project path is valid
+func ValidatePath(path string) error {
+	if path == "" {
+		return errors.New("path cannot be empty")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("path does not exist")
+		}
+		return errors.New("invalid path: " + err.Error())
+	}
+	if !info.IsDir() {
+		return errors.New("path is not a directory")
+	}
+	return nil
 }
 
 func (p *Project) UpdateLastOpened() {
@@ -91,8 +112,15 @@ func (s *ProjectStore) Len() int {
 	return len(s.Projects)
 }
 
+// ValidatePath checks if a project path is valid
+func (s *ProjectStore) ValidatePath(path string) error {
+	return ValidatePath(path)
+}
+
 func (s *ProjectStore) SortByLastOpened() {
-	s.Projects = sortProjectsByLastOpened(s.Projects)
+	sort.Slice(s.Projects, func(i, j int) bool {
+		return s.Projects[i].LastOpened.After(s.Projects[j].LastOpened)
+	})
 }
 
 // Search 搜索项目（模糊匹配别名、路径、描述）
@@ -101,11 +129,11 @@ func (s *ProjectStore) Search(query string) []Project {
 		return s.Projects
 	}
 	var results []Project
-	lowerQuery := toLower(query)
+	lowerQuery := strings.ToLower(query)
 	for _, p := range s.Projects {
-		if containsLower(p.Alias, lowerQuery) ||
-			containsLower(p.Path, lowerQuery) ||
-			containsLower(p.Description, lowerQuery) {
+		if strings.Contains(strings.ToLower(p.Alias), lowerQuery) ||
+			strings.Contains(strings.ToLower(p.Path), lowerQuery) ||
+			strings.Contains(strings.ToLower(p.Description), lowerQuery) {
 			results = append(results, p)
 		}
 	}
@@ -131,45 +159,7 @@ func (s *ProjectStore) GetIndexByProject(id string) int {
 	return -1
 }
 
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			result[i] = c + 32
-		} else {
-			result[i] = c
-		}
-	}
-	return string(result)
-}
 
-func containsLower(s, substr string) bool {
-	return toLower(s) == toLower(substr) ||
-		len(s) > len(substr) && toLower(s[:len(substr)]) == substr ||
-		len(s) > len(substr) && toLower(s[len(s)-len(substr):]) == substr ||
-		len(s) > len(substr) && containsSubstring(toLower(s), substr)
-}
-
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func sortProjectsByLastOpened(projects []Project) []Project {
-	for i := 0; i < len(projects)-1; i++ {
-		for j := i + 1; j < len(projects); j++ {
-			if projects[j].LastOpened.After(projects[i].LastOpened) {
-				projects[i], projects[j] = projects[j], projects[i]
-			}
-		}
-	}
-	return projects
-}
 
 func (s *ProjectStore) Load(path string) error {
 	data, err := os.ReadFile(path)

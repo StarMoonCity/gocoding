@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
 
+	"gocoding/internal/config"
 	"gocoding/internal/models"
 )
 
@@ -37,6 +38,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleEditDescriptionKeyMsg(msg)
 		case StateSearch:
 			return m.handleSearchKeyMsg(msg)
+		case StateProviderList:
+			return m.handleProviderListKeyMsg(msg)
+		case StateProviderAdd:
+			return m.handleProviderAddKeyMsg(msg)
+		case StateProviderEdit:
+			return m.handleProviderEditKeyMsg(msg)
+		case StateProviderDelete:
+			return m.handleProviderDeleteKeyMsg(msg)
 		}
 	}
 
@@ -130,6 +139,10 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.list.Items()) > 0 {
 			return m.openWithIDE(models.IDEOpenCode)
 		}
+	case "p":
+		// 进入模型配置列表
+		m.state = StateProviderList
+		return m, nil
 	case "ctrl+c", "ctrl+q", "q":
 		return m, tea.Quit
 	}
@@ -142,6 +155,13 @@ func (m *Model) handleAddProjectKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// 如果路径和名称都有效，添加项目
 		path := m.input.Value()
 		name := m.secondaryInput.Value()
+
+		// 验证路径
+		if err := m.store.ValidatePath(path); err != nil {
+			m.errMsg = err.Error()
+			return m, nil
+		}
+
 		if path != "" && name != "" {
 			project := models.Project{
 				ID:        generateID(),
@@ -403,4 +423,262 @@ func (m *Model) updateListItems() {
 		items[i] = listItem{project: p}
 	}
 	m.list.SetItems(items)
+}
+
+// handleProviderListKeyMsg 处理配置列表按键
+func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "j", "down":
+		m.providerList.CursorDown()
+	case "k", "up":
+		m.providerList.CursorUp()
+	case "n":
+		// 新增配置
+		m.state = StateProviderAdd
+		m.providerInputFocus = FocusProviderName
+		m.providerNameInput.Reset()
+		m.providerNameInput.Placeholder = "配置名称 (如 MiniMax)"
+		m.providerNameInput.SetValue("")
+		m.providerNameInput.Focus()
+		m.providerBaseURLInput.Reset()
+		m.providerBaseURLInput.Placeholder = "Base URL (如 https://api.minimax.chat)"
+		m.providerBaseURLInput.SetValue("")
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Reset()
+		m.providerAPIKeyInput.Placeholder = "API Key"
+		m.providerAPIKeyInput.SetValue("")
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Reset()
+		m.providerModelInput.Placeholder = "模型名称 (如 MiniMax-M2.7-highspeed)"
+		m.providerModelInput.SetValue("")
+		m.providerModelInput.Blur()
+		m.editingProviderID = ""
+		m.errMsg = ""
+		return m, textinput.Blink
+	case "e":
+		// 编辑选中配置
+		if len(m.providerList.Items()) > 0 {
+			m.state = StateProviderEdit
+			current := m.providerList.SelectedItem().(providerListItem)
+			m.editingProviderID = current.provider.ID
+			m.providerInputFocus = FocusProviderName
+			m.providerNameInput.SetValue(current.provider.Name)
+			m.providerNameInput.Focus()
+			m.providerBaseURLInput.SetValue(current.provider.BaseURL)
+			m.providerBaseURLInput.Blur()
+			m.providerAPIKeyInput.SetValue(current.provider.APIKey)
+			m.providerAPIKeyInput.Blur()
+			m.providerModelInput.SetValue(current.provider.Model)
+			m.providerModelInput.Blur()
+			m.errMsg = ""
+			return m, textinput.Blink
+		}
+	case "d":
+		// 删除确认
+		if len(m.providerList.Items()) > 0 {
+			m.state = StateProviderDelete
+		}
+	case "a":
+		// 激活选中配置
+		if len(m.providerList.Items()) > 0 {
+			current := m.providerList.SelectedItem().(providerListItem)
+			m.providerStore.SetActive(current.provider.ID)
+			// 写入 Claude settings.json 并备份
+			alreadySet, err := config.WriteToClaudeSettings(&current.provider)
+			if err != nil {
+				m.errMsg = "激活失败: " + err.Error()
+			} else if alreadySet {
+				m.errMsg = "配置已生效，无需更新"
+			} else {
+				m.errMsg = "激活成功"
+			}
+			m.updateProviderListItems()
+		}
+	case "enter":
+		// 编辑选中配置
+		if len(m.providerList.Items()) > 0 {
+			m.state = StateProviderEdit
+			current := m.providerList.SelectedItem().(providerListItem)
+			m.editingProviderID = current.provider.ID
+			m.providerInputFocus = FocusProviderName
+			m.providerNameInput.SetValue(current.provider.Name)
+			m.providerNameInput.Focus()
+			m.providerBaseURLInput.SetValue(current.provider.BaseURL)
+			m.providerBaseURLInput.Blur()
+			m.providerAPIKeyInput.SetValue(current.provider.APIKey)
+			m.providerAPIKeyInput.Blur()
+			m.providerModelInput.SetValue(current.provider.Model)
+			m.providerModelInput.Blur()
+			m.errMsg = ""
+			return m, textinput.Blink
+		}
+	case "esc":
+		m.state = StateList
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	}
+
+	// 更新列表
+	m.providerList, _ = m.providerList.Update(msg)
+	return m, nil
+}
+
+// handleProviderAddKeyMsg 处理新增配置按键
+func (m *Model) handleProviderAddKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		name := m.providerNameInput.Value()
+		baseURL := m.providerBaseURLInput.Value()
+		apiKey := m.providerAPIKeyInput.Value()
+		model := m.providerModelInput.Value()
+
+		// 验证
+		if name == "" {
+			m.errMsg = "配置名称不能为空"
+			return m, nil
+		}
+		if baseURL == "" {
+			m.errMsg = "Base URL不能为空"
+			return m, nil
+		}
+		if apiKey == "" {
+			m.errMsg = "API Key不能为空"
+			return m, nil
+		}
+		if model == "" {
+			m.errMsg = "模型名称不能为空"
+			return m, nil
+		}
+
+		provider := models.ModelProvider{
+			ID:        models.GenerateProviderID(),
+			Name:      name,
+			BaseURL:   baseURL,
+			APIKey:    apiKey,
+			Model:     model,
+			CreatedAt: time.Now(),
+		}
+		m.providerStore.Add(provider)
+		m.updateProviderListItems()
+		m.state = StateProviderList
+		m.errMsg = ""
+		return m, nil
+	case "tab":
+		// 切换焦点
+		m.providerInputFocus = (m.providerInputFocus + 1) % FocusProviderCount
+		m.updateProviderFocus()
+	case "esc":
+		m.state = StateProviderList
+		m.errMsg = ""
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	}
+
+	// 更新当前焦点输入框
+	return m, m.updateProviderInput(msg)
+}
+
+// handleProviderEditKeyMsg 处理编辑配置按键
+func (m *Model) handleProviderEditKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		name := m.providerNameInput.Value()
+		baseURL := m.providerBaseURLInput.Value()
+		apiKey := m.providerAPIKeyInput.Value()
+		model := m.providerModelInput.Value()
+
+		// 验证
+		if name == "" {
+			m.errMsg = "配置名称不能为空"
+			return m, nil
+		}
+		if baseURL == "" {
+			m.errMsg = "Base URL不能为空"
+			return m, nil
+		}
+		if apiKey == "" {
+			m.errMsg = "API Key不能为空"
+			return m, nil
+		}
+		if model == "" {
+			m.errMsg = "模型名称不能为空"
+			return m, nil
+		}
+
+		m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model)
+		m.updateProviderListItems()
+		m.state = StateProviderList
+		m.errMsg = ""
+		return m, nil
+	case "tab":
+		// 切换焦点
+		m.providerInputFocus = (m.providerInputFocus + 1) % FocusProviderCount
+		m.updateProviderFocus()
+	case "esc":
+		m.state = StateProviderList
+		m.errMsg = ""
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	}
+
+	// 更新当前焦点输入框
+	return m, m.updateProviderInput(msg)
+}
+
+// handleProviderDeleteKeyMsg 处理删除确认按键
+func (m *Model) handleProviderDeleteKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "enter":
+		current := m.providerList.SelectedItem().(providerListItem)
+		m.providerStore.Remove(current.provider.ID)
+		m.updateProviderListItems()
+		m.state = StateProviderList
+	case "n", "esc":
+		m.state = StateProviderList
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+// updateProviderFocus 更新焦点状态
+func (m *Model) updateProviderFocus() {
+	switch m.providerInputFocus {
+	case FocusProviderName:
+		m.providerNameInput.Focus()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+	case FocusProviderBaseURL:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Focus()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+	case FocusProviderAPIKey:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Focus()
+		m.providerModelInput.Blur()
+	case FocusProviderModel:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Focus()
+	}
+}
+
+// updateProviderInput 更新焦点的输入框
+func (m *Model) updateProviderInput(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	switch m.providerInputFocus {
+	case FocusProviderName:
+		m.providerNameInput, cmd = m.providerNameInput.Update(msg)
+	case FocusProviderBaseURL:
+		m.providerBaseURLInput, cmd = m.providerBaseURLInput.Update(msg)
+	case FocusProviderAPIKey:
+		m.providerAPIKeyInput, cmd = m.providerAPIKeyInput.Update(msg)
+	case FocusProviderModel:
+		m.providerModelInput, cmd = m.providerModelInput.Update(msg)
+	}
+	return cmd
 }

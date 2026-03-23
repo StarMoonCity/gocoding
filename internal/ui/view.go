@@ -48,6 +48,14 @@ func (m *Model) View() string {
 		return m.viewEditDescription()
 	case StateSearch:
 		return m.viewSearch()
+	case StateProviderList:
+		return m.viewProviderList()
+	case StateProviderAdd:
+		return m.viewProviderForm(false)
+	case StateProviderEdit:
+		return m.viewProviderForm(true)
+	case StateProviderDelete:
+		return m.viewProviderDelete()
 	default:
 		return m.viewList()
 	}
@@ -122,17 +130,17 @@ func (m *Model) renderHelpText() string {
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ 移动 | n 添加 | / 搜索 | q 退出")
+			Render("↑/↓ 移动 | n 添加 | / 搜索 | p 配置 | q 退出")
 	case HelpTextNormal:
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ j/k 移动 | n 添加 | / 搜索 | r 重命名 | d 删除 | enter 选择 | q 退出")
+			Render("↑/↓ j/k 移动 | n 添加 | / 搜索 | r 重命名 | d 删除 | p 配置 | enter 选择 | q 退出")
 	default:
 		return lipgloss.NewStyle().
 			Foreground(SecondaryColor).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ j/k 导航 | / 搜索 | n 添加 | v 详情 | e 描述 | r 重命名 | d 删除 | enter IDE | 1/2/3 快速打开 | q 退出")
+			Render("↑/↓ j/k 导航 | / 搜索 | n 添加 | v 详情 | e 描述 | r 重命名 | d 删除 | p 配置 | enter IDE | 1/2/3 快速打开 | q 退出")
 	}
 }
 

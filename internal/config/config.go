@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -16,7 +17,10 @@ var v *viper.Viper
 func Init() error {
 	v = viper.New()
 
-	homeDir, _ := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return errors.New("cannot determine user home directory: " + err.Error())
+	}
 	configDir := filepath.Join(homeDir, ".config", "gocoding")
 
 	v.SetConfigName("config")

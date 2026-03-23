@@ -16,8 +16,10 @@ type IDEExecutor = commands.IDEExecutor
 
 type Model struct {
 	store          *models.ProjectStore
+	providerStore  *models.ModelProviderStore
 	ideExec        *IDEExecutor
 	list           list.Model
+	providerList   list.Model // 用于显示配置列表
 	width          int
 	height         int
 	state          AppState
@@ -34,6 +36,13 @@ type Model struct {
 	layoutMode     LayoutMode
 	showDetails    bool
 	searchQuery    string // 搜索查询字符串
+	// Provider 配置输入
+	providerInputFocus      ProviderInputFocus
+	providerNameInput      textinput.Model
+	providerBaseURLInput   textinput.Model
+	providerAPIKeyInput    textinput.Model
+	providerModelInput     textinput.Model
+	editingProviderID      string // 编辑中的配置ID，为空表示新增
 }
 
 type LayoutMode int
@@ -51,6 +60,17 @@ const (
 	FocusName
 )
 
+// ProviderInputFocus 模型提供商配置输入焦点
+type ProviderInputFocus int
+
+const (
+	FocusProviderName ProviderInputFocus = iota
+	FocusProviderBaseURL
+	FocusProviderAPIKey
+	FocusProviderModel
+	FocusProviderCount // 焦点数量
+)
+
 type AppState int
 
 const (
@@ -62,6 +82,10 @@ const (
 	StateViewDetail
 	StateEditDescription
 	StateSearch
+	StateProviderList  // 模型配置列表
+	StateProviderAdd   // 添加新配置
+	StateProviderEdit  // 编辑配置
+	StateProviderDelete // 删除确认
 )
 
 type DialogModel struct {
@@ -87,6 +111,23 @@ type IDEOption struct {
 type listItem struct {
 	project models.Project
 }
+
+type providerListItem struct {
+	provider models.ModelProvider
+}
+
+func (i providerListItem) Title() string {
+	return i.provider.Name
+}
+
+func (i providerListItem) Description() string {
+	if i.provider.Active {
+		return i.provider.BaseURL + " • " + i.provider.Model + " [激活]"
+	}
+	return i.provider.BaseURL + " • " + i.provider.Model
+}
+
+func (i providerListItem) FilterValue() string { return i.provider.Name }
 
 func (i listItem) Title() string {
 	// 只显示别名
@@ -160,7 +201,55 @@ func NewModel(store *models.ProjectStore) *Model {
 		}
 	}
 
+	// 初始化模型配置输入框
+	m.initProviderInputs()
+
 	return m
+}
+
+// initProviderInputs 初始化模型配置输入框
+func (m *Model) initProviderInputs() {
+	m.providerNameInput = textinput.New()
+	m.providerNameInput.Placeholder = "配置名称 (如 MiniMax)"
+
+	m.providerBaseURLInput = textinput.New()
+	m.providerBaseURLInput.Placeholder = "Base URL (如 https://api.minimax.chat)"
+
+	m.providerAPIKeyInput = textinput.New()
+	m.providerAPIKeyInput.Placeholder = "API Key"
+
+	m.providerModelInput = textinput.New()
+	m.providerModelInput.Placeholder = "模型名称 (如 MiniMax-M2.7-highspeed)"
+}
+
+// SetProviderStore 设置模型配置存储
+func (m *Model) SetProviderStore(store *models.ModelProviderStore) {
+	m.providerStore = store
+	// 更新配置列表
+	m.updateProviderListItems()
+}
+
+// updateProviderListItems 更新配置列表
+func (m *Model) updateProviderListItems() {
+	if m.providerStore == nil {
+		return
+	}
+	items := make([]list.Item, len(m.providerStore.Providers))
+	for i, p := range m.providerStore.Providers {
+		items[i] = providerListItem{provider: p}
+	}
+	delegate := list.NewDefaultDelegate()
+	delegate.SetSpacing(0)
+	m.providerList = list.New(items, delegate, 60, 14)
+	m.providerList.SetShowTitle(false)
+	m.providerList.SetShowStatusBar(false)
+	m.providerList.SetShowHelp(false)
+	m.providerList.SetFilteringEnabled(true)
+}
+
+// SetState 设置应用状态
+func (m *Model) SetState(state AppState) {
+	m.state = state
 }
 
 func (m *Model) Init() tea.Cmd {

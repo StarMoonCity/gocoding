@@ -249,6 +249,19 @@ func (m *Model) viewProviderList() string {
 			Render("⚠ " + m.errMsg)
 	}
 
+	// 提示消息显示
+	var tipDisplay string
+	if m.tipMsg != "" {
+		tipDisplay = lipgloss.NewStyle().
+			Foreground(SecondaryColor).
+			Background(lipgloss.Color("#1A2F1A")).
+			Padding(1, 2).
+			MarginBottom(1).
+			Align(lipgloss.Center).
+			Width(dialogWidth - 4).
+			Render("💡 " + m.tipMsg)
+	}
+
 	helpText := lipgloss.NewStyle().
 		Foreground(SecondaryColor).
 		Align(lipgloss.Center).
@@ -267,6 +280,7 @@ func (m *Model) viewProviderList() string {
 				header,
 				"",
 				listView,
+				tipDisplay,
 				errDisplay,
 				"",
 				helpText,
@@ -324,6 +338,18 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 			Render("⚠ " + m.errMsg)
 	}
 
+	// 提示消息显示
+	var tipDisplay string
+	if m.tipMsg != "" {
+		tipDisplay = lipgloss.NewStyle().
+			Foreground(SecondaryColor).
+			Background(lipgloss.Color("#1A2F1A")).
+			Padding(1, 2).
+			MarginBottom(1).
+			Width(dialogWidth - 4).
+			Render("💡 " + m.tipMsg)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(lipgloss.RoundedBorder()).
@@ -336,17 +362,21 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 				lipgloss.Center,
 				TitleStyle.Render(title),
 				"",
-				InfoStyle.Render("配置名称"),
-				nameStyle.Render(m.providerNameInput.View()),
-				"",
-				InfoStyle.Render("Base URL"),
-				baseURLStyle.Render(m.providerBaseURLInput.View()),
-				"",
-				InfoStyle.Render("API Key"),
-				apiKeyStyle.Render(m.providerAPIKeyInput.View()),
-				"",
-				InfoStyle.Render("模型名称"),
-				modelStyle.Render(m.providerModelInput.View()),
+				lipgloss.JoinVertical(
+					lipgloss.Left,
+					InfoStyle.Render("配置名称"),
+					nameStyle.Render(m.providerNameInput.View()),
+					"",
+					InfoStyle.Render("Base URL"),
+					baseURLStyle.Render(m.providerBaseURLInput.View()),
+					"",
+					InfoStyle.Render("API Key"),
+					apiKeyStyle.Render(m.providerAPIKeyInput.View()),
+					"",
+					InfoStyle.Render("模型名称"),
+					modelStyle.Render(m.providerModelInput.View()),
+				),
+				tipDisplay,
 				errDisplay,
 				"",
 				HelpStyle.Render("[enter] 保存 · [tab] 切换 · [esc] 取消"),

@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"io"
+
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -33,6 +36,7 @@ type Model struct {
 	tempName       string
 	inputFocus     InputFocus // 当前输入焦点
 	errMsg         string
+	tipMsg         string // 提示信息
 	layoutMode     LayoutMode
 	showDetails    bool
 	searchQuery    string // 搜索查询字符串
@@ -227,13 +231,95 @@ func (m *Model) initProviderInputs() {
 
 // initProviderList 初始化模型配置列表
 func (m *Model) initProviderList() {
-	delegate := list.NewDefaultDelegate()
-	delegate.SetSpacing(0)
-	m.providerList = list.New(nil, delegate, 60, 14)
+	delegate := providerListDelegate{}
+	m.providerList = list.New(nil, delegate, 0, 0)
 	m.providerList.SetShowTitle(false)
 	m.providerList.SetShowStatusBar(false)
 	m.providerList.SetShowHelp(false)
 	m.providerList.SetFilteringEnabled(true)
+}
+
+// providerListDelegate 自定义列表项渲染
+type providerListDelegate struct{}
+
+func (d providerListDelegate) Height() int { return 2 }
+func (d providerListDelegate) Spacing() int { return 1 }
+func (d providerListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item list.Item) {
+	p, ok := item.(providerListItem)
+	if !ok {
+		return
+	}
+
+	provider := p.provider
+
+	// 获取当前选中索引（相对于整个列表）
+	selectedIndex := m.Index()
+
+	// 找到当前项在列表中的索引
+	itemIndex := -1
+	for i, listItem := range m.Items() {
+		if listItem.FilterValue() == item.FilterValue() {
+			itemIndex = i
+			break
+		}
+	}
+
+	// 检查是否是选中状态
+	isSelected := itemIndex == selectedIndex
+
+	// 激活标签样式
+	activeTag := ""
+	if provider.Active {
+		activeTag = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#22C55E")).
+			Background(lipgloss.Color("#14532D")).
+			Padding(0, 1).
+			Render("[激活]")
+	}
+
+	// 名称样式 - 选中时高亮
+	nameStyle := lipgloss.NewStyle().Bold(true)
+	if isSelected {
+		nameStyle = nameStyle.Foreground(lipgloss.Color("#FFD700"))
+	} else {
+		nameStyle = nameStyle.Foreground(PrimaryColor)
+	}
+
+	// URL 和模型样式
+	infoStyle := lipgloss.NewStyle().Foreground(SecondaryColor)
+
+	// 选中标记
+	selector := "  "
+	if isSelected {
+		selector = "▶ "
+	}
+
+	// 构建显示内容
+	var line string
+	if provider.Active {
+		line = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			selector,
+			nameStyle.Width(18).Render(provider.Name),
+			"  ",
+			activeTag,
+		)
+	} else {
+		line = selector + nameStyle.Width(18).Render(provider.Name)
+	}
+
+	// 第二行：URL 和模型
+	secondLine := "  " + infoStyle.Render(provider.BaseURL+" • "+provider.Model)
+
+	// 使用换行符连接
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		line,
+		secondLine,
+	)
+
+	fmt.Fprintf(w, "%s", content)
 }
 
 // SetProviderStore 设置模型配置存储

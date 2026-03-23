@@ -12,11 +12,24 @@ import (
 	"gocoding/internal/models"
 )
 
+// clearProviderMessageMsg 自定义消息，用于清除提供商表单的消息
+type clearProviderMessageMsg struct {
+	msgType string // "err" 或 "tip"
+}
+
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case clearProviderMessageMsg:
+		// 清除消息
+		if msg.msgType == "err" {
+			m.errMsg = ""
+		} else if msg.msgType == "tip" {
+			m.tipMsg = ""
+		}
+		return m, nil
 	case tea.WindowSizeMsg:
 		m.SetSize(msg.Width, msg.Height)
 		return m, nil
@@ -428,9 +441,9 @@ func (m *Model) updateListItems() {
 // handleProviderListKeyMsg 处理配置列表按键
 func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "j", "down", "ctrl+n":
+	case "k", "down", "ctrl+n":
 		m.providerList.CursorDown()
-	case "k", "up", "ctrl+p":
+	case "j", "up", "ctrl+p":
 		m.providerList.CursorUp()
 	case "n":
 		// 新增配置
@@ -487,10 +500,22 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			alreadySet, err := config.WriteToClaudeSettings(&current.provider)
 			if err != nil {
 				m.errMsg = "激活失败: " + err.Error()
+				// 5秒后清除错误消息
+				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+					return clearProviderMessageMsg{msgType: "err"}
+				})
 			} else if alreadySet {
-				m.errMsg = "配置已生效，无需更新"
+				m.tipMsg = "配置已生效，无需更新"
+				// 5秒后清除提示消息
+				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+					return clearProviderMessageMsg{msgType: "tip"}
+				})
 			} else {
-				m.errMsg = "激活成功"
+				m.tipMsg = "激活成功"
+				// 5秒后清除提示消息
+				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+					return clearProviderMessageMsg{msgType: "tip"}
+				})
 			}
 			m.updateProviderListItems()
 		}
@@ -531,20 +556,16 @@ func (m *Model) handleProviderAddKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// 验证
 		if name == "" {
-			m.errMsg = "配置名称不能为空"
-			return m, nil
+			return m.setProviderErrMsg("配置名称不能为空")
 		}
 		if baseURL == "" {
-			m.errMsg = "Base URL不能为空"
-			return m, nil
+			return m.setProviderErrMsg("Base URL不能为空")
 		}
 		if apiKey == "" {
-			m.errMsg = "API Key不能为空"
-			return m, nil
+			return m.setProviderErrMsg("API Key不能为空")
 		}
 		if model == "" {
-			m.errMsg = "模型名称不能为空"
-			return m, nil
+			return m.setProviderErrMsg("模型名称不能为空")
 		}
 
 		provider := models.ModelProvider{
@@ -586,20 +607,16 @@ func (m *Model) handleProviderEditKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		// 验证
 		if name == "" {
-			m.errMsg = "配置名称不能为空"
-			return m, nil
+			return m.setProviderErrMsg("配置名称不能为空")
 		}
 		if baseURL == "" {
-			m.errMsg = "Base URL不能为空"
-			return m, nil
+			return m.setProviderErrMsg("Base URL不能为空")
 		}
 		if apiKey == "" {
-			m.errMsg = "API Key不能为空"
-			return m, nil
+			return m.setProviderErrMsg("API Key不能为空")
 		}
 		if model == "" {
-			m.errMsg = "模型名称不能为空"
-			return m, nil
+			return m.setProviderErrMsg("模型名称不能为空")
 		}
 
 		m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model)
@@ -636,6 +653,22 @@ func (m *Model) handleProviderDeleteKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+// setProviderErrMsg 设置错误消息并在5秒后自动清除
+func (m *Model) setProviderErrMsg(msg string) (tea.Model, tea.Cmd) {
+	m.errMsg = msg
+	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return clearProviderMessageMsg{msgType: "err"}
+	})
+}
+
+// setProviderTipMsg 设置提示消息并在5秒后自动清除
+func (m *Model) setProviderTipMsg(msg string) (tea.Model, tea.Cmd) {
+	m.tipMsg = msg
+	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return clearProviderMessageMsg{msgType: "tip"}
+	})
 }
 
 // updateProviderFocus 更新焦点状态

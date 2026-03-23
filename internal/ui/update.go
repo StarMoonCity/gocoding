@@ -498,6 +498,7 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerStore.SetActive(current.provider.ID)
 			// 写入 Claude settings.json 并备份
 			alreadySet, err := config.WriteToClaudeSettings(&current.provider)
+			m.updateProviderListItems()
 			if err != nil {
 				m.errMsg = "激活失败: " + err.Error()
 				// 5秒后清除错误消息
@@ -505,19 +506,18 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					return clearProviderMessageMsg{msgType: "err"}
 				})
 			} else if alreadySet {
-				m.tipMsg = "配置已生效，无需更新"
+				m.tipMsg = current.provider.Name + " 配置已生效，无需更新"
 				// 5秒后清除提示消息
 				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 					return clearProviderMessageMsg{msgType: "tip"}
 				})
 			} else {
-				m.tipMsg = "激活成功"
+				m.tipMsg = "已激活 " + current.provider.Name
 				// 5秒后清除提示消息
 				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
 					return clearProviderMessageMsg{msgType: "tip"}
 				})
 			}
-			m.updateProviderListItems()
 		}
 	case "enter":
 		// 编辑选中配置

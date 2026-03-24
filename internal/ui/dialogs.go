@@ -275,9 +275,12 @@ func (m *Model) viewProviderList() string {
 		Align(lipgloss.Center).
 		Render("⚙ 模型配置")
 
-	listView := m.providerList.View()
-
-	dialogWidth := min(60, m.width-10)
+	dialogWidth := m.providerDialogWidth()
+	contentWidth := m.providerListWidth()
+	listView := lipgloss.NewStyle().
+		Width(contentWidth).
+		Align(lipgloss.Center).
+		Render(m.providerList.View())
 
 	// 错误消息
 	var errDisplay string
@@ -298,15 +301,23 @@ func (m *Model) viewProviderList() string {
 	helpText := lipgloss.NewStyle().
 		Foreground(SecondaryText).
 		Align(lipgloss.Center).
-		Width(dialogWidth - 4).
-		Render(
-			HelpKeyStyle.Render("[↑↓]"), " 选择 ",
-			HelpKeyStyle.Render("[N]"), " 新增 ",
-			HelpKeyStyle.Render("[E]"), " 编辑 ",
-			HelpKeyStyle.Render("[D]"), " 删除 ",
-			HelpKeyStyle.Render("[A]"), " 激活 ",
-			HelpKeyStyle.Render("[Esc]"), " 退出",
-		)
+		Width(contentWidth).
+		Render(lipgloss.JoinVertical(
+			lipgloss.Center,
+			lipgloss.JoinHorizontal(
+				lipgloss.Left,
+				m.renderProviderHelpItem("[↑↓]", "选择"),
+				"  ",
+				m.renderProviderHelpItem("[N]", "新增"),
+				"  ",
+				m.renderProviderHelpItem("[E]", "编辑"),
+				"  ",
+				m.renderProviderHelpItem("[D]", "删除"),
+				"  ",
+				m.renderProviderHelpItem("[A]", "激活"),
+			),
+			m.renderProviderHelpItem("[Esc]", "退出"),
+		))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -343,12 +354,12 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		title = "✎ 编辑配置"
 	}
 
-	dialogWidth := min(60, m.width-10)
+	dialogWidth := m.providerDialogWidth()
 
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
 		BorderForeground(PrimaryDim).
-		Width(dialogWidth - 10).
+		Width(dialogWidth-10).
 		Padding(0, 1)
 
 	// 当前焦点的输入框高亮 - 聚焦时使用主色
@@ -495,4 +506,13 @@ func (m *Model) viewProviderDelete() string {
 	)
 
 	return overlay
+}
+
+func (m *Model) renderProviderHelpItem(key, label string) string {
+	return lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		HelpKeyStyle.Render(key),
+		" ",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render(label),
+	)
 }

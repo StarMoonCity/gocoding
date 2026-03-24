@@ -7,29 +7,29 @@ import (
 // 暗色主题色彩系统 - 统一单色调风格
 var (
 	// 背景层次
-	BackgroundDeep   = lipgloss.Color("#0F1419") // 最深背景
-	Background       = lipgloss.Color("#1A2332") // 主背景
-	BackgroundLight  = lipgloss.Color("#2D3A4F") // 表面/卡片背景（与选中背景统一）
-	BackgroundHover  = lipgloss.Color("#363F52") // 悬停状态
+	BackgroundDeep  = lipgloss.Color("#0F1419") // 最深背景
+	Background      = lipgloss.Color("#1A2332") // 主背景
+	BackgroundLight = lipgloss.Color("#243246") // 表面/卡片背景
+	BackgroundHover = lipgloss.Color("#363F52") // 悬停状态
 
 	// 主色调 - 统一使用青色系
-	PrimaryColor     = lipgloss.Color("#00D4FF")   // 青色主色
-	PrimaryDim       = lipgloss.Color("#0099CC")   // 次级主色
-	PrimaryDark      = lipgloss.Color("#006B8F")   // 深色变体
+	PrimaryColor = lipgloss.Color("#00D4FF") // 青色主色
+	PrimaryDim   = lipgloss.Color("#0099CC") // 次级主色
+	PrimaryDark  = lipgloss.Color("#006B8F") // 深色变体
 
 	// 状态色 - 使用同一色系
-	SuccessColor     = lipgloss.Color("#10B981")   // 绿色（同一色调）
-	WarningColor     = lipgloss.Color("#F59E0B")   // 保留警告色
-	ErrorColor       = lipgloss.Color("#EF4444")   // 保留错误色
+	SuccessColor = lipgloss.Color("#10B981") // 绿色（同一色调）
+	WarningColor = lipgloss.Color("#F59E0B") // 保留警告色
+	ErrorColor   = lipgloss.Color("#EF4444") // 保留错误色
 
 	// 文字色
-	Foreground       = lipgloss.Color("#F8FAFC")   // 主文字
-	SecondaryText    = lipgloss.Color("#94A3B8")   // 次级文字
-	MutedText        = lipgloss.Color("#64748B")   // 淡化文字
+	Foreground    = lipgloss.Color("#F8FAFC") // 主文字
+	SecondaryText = lipgloss.Color("#94A3B8") // 次级文字
+	MutedText     = lipgloss.Color("#64748B") // 淡化文字
 
 	// 选中状态 - 使用主色调作为唯一强调
-	SelectedBg       = lipgloss.Color("#1E3A5F")   // 选中背景（深青色）
-	SelectedBorder   = lipgloss.Color("#00D4FF")   // 选中边框
+	SelectedBg     = lipgloss.Color("#1E3A5F") // 选中背景（深青色）
+	SelectedBorder = lipgloss.Color("#00D4FF") // 选中边框
 )
 
 // 通用样式定义
@@ -37,7 +37,6 @@ var (
 	// 标题样式
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(PrimaryColor).
-			Background(Background).
 			Bold(true).
 			Padding(0, 1)
 
@@ -59,27 +58,25 @@ var (
 
 	// 普通项样式
 	NormalItemStyle = lipgloss.NewStyle().
-				Foreground(Foreground).
-				Background(Background).
-				Padding(0, 1)
+			Foreground(Foreground).
+			Background(Background).
+			Padding(0, 1)
 
 	// 帮助文本样式
 	HelpStyle = lipgloss.NewStyle().
-			Foreground(SecondaryText).
-			Background(Background)
+			Foreground(SecondaryText)
 
 	// 信息文本样式
 	InfoStyle = lipgloss.NewStyle().
-			Foreground(SecondaryText).
-			Background(Background)
+			Foreground(SecondaryText)
 
 	// IDE选中样式 - 使用成功色
 	IDESelectedStyle = lipgloss.NewStyle().
-			Foreground(Background).
-			Background(SuccessColor).
-			Padding(0, 2).
-			MarginRight(1).
-			Bold(true)
+				Foreground(Background).
+				Background(SuccessColor).
+				Padding(0, 2).
+				MarginRight(1).
+				Bold(true)
 
 	// 状态栏样式
 	StatusBarStyle = lipgloss.NewStyle().
@@ -119,46 +116,43 @@ var (
 func GetStatusStyle(available bool) lipgloss.Style {
 	if available {
 		return lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Background(Background)
+			Foreground(SuccessColor)
 	}
 	return lipgloss.NewStyle().
-		Foreground(WarningColor).
-		Background(Background)
+		Foreground(WarningColor)
 }
 
 // ErrorBoxStyle 错误消息框样式
 var ErrorBoxStyle = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Background(lipgloss.Color("#2C1810")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ErrorColor).
-			Width(40)
+	Foreground(ErrorColor).
+	Background(lipgloss.Color("#2C1810")).
+	Padding(1, 2).
+	MarginBottom(1).
+	Border(lipgloss.RoundedBorder()).
+	BorderForeground(ErrorColor).
+	Width(40)
 
 // TipBoxStyle 提示消息框样式
 var TipBoxStyle = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Background(lipgloss.Color("#0F1926")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(PrimaryDim).
-			Width(40)
+	Foreground(PrimaryColor).
+	Background(lipgloss.Color("#0F1926")).
+	Padding(1, 2).
+	MarginBottom(1).
+	Border(lipgloss.RoundedBorder()).
+	BorderForeground(PrimaryDim).
+	Width(40)
 
 // SuccessBoxStyle 成功消息框样式
 var SuccessBoxStyle = lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Background(lipgloss.Color("#0F2618")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(SuccessColor).
-			Width(40)
+	Foreground(SuccessColor).
+	Background(lipgloss.Color("#0F2618")).
+	Padding(1, 2).
+	MarginBottom(1).
+	Border(lipgloss.RoundedBorder()).
+	BorderForeground(SuccessColor).
+	Width(40)
 
 // HelpKeyStyle 快捷键样式
 var HelpKeyStyle = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Background(Background).
-			Bold(true)
+	Foreground(PrimaryColor).
+	Bold(true)

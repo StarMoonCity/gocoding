@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -10,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"gocoding/internal/commands"
 	"gocoding/internal/models"
@@ -41,17 +43,17 @@ type Model struct {
 	showDetails    bool
 	searchQuery    string // 搜索查询字符串
 	// Provider 配置输入
-	providerInputFocus          ProviderInputFocus
-	providerNameInput           textinput.Model
-	providerBaseURLInput        textinput.Model
-	providerAPIKeyInput         textinput.Model
-	providerModelInput          textinput.Model
-	providerThinkingModelInput  textinput.Model // 推理模型
-	providerDefaultHaikuInput   textinput.Model // Haiku 默认模型
-	providerDefaultSonnetInput  textinput.Model // Sonnet 默认模型
-	providerDefaultOpusInput    textinput.Model // Opus 默认模型
-	editingProviderID           string // 编辑中的配置ID，为空表示新增
-	itemIndexCache        map[string]int // listItem.FilterValue -> index 缓存
+	providerInputFocus         ProviderInputFocus
+	providerNameInput          textinput.Model
+	providerBaseURLInput       textinput.Model
+	providerAPIKeyInput        textinput.Model
+	providerModelInput         textinput.Model
+	providerThinkingModelInput textinput.Model // 推理模型
+	providerDefaultHaikuInput  textinput.Model // Haiku 默认模型
+	providerDefaultSonnetInput textinput.Model // Sonnet 默认模型
+	providerDefaultOpusInput   textinput.Model // Opus 默认模型
+	editingProviderID          string          // 编辑中的配置ID，为空表示新增
+	itemIndexCache             map[string]int  // listItem.FilterValue -> index 缓存
 }
 
 type LayoutMode int
@@ -94,9 +96,9 @@ const (
 	StateViewDetail
 	StateEditDescription
 	StateSearch
-	StateProviderList  // 模型配置列表
-	StateProviderAdd   // 添加新配置
-	StateProviderEdit  // 编辑配置
+	StateProviderList   // 模型配置列表
+	StateProviderAdd    // 添加新配置
+	StateProviderEdit   // 编辑配置
 	StateProviderDelete // 删除确认
 )
 
@@ -174,10 +176,10 @@ func newProviderListItems(providers []models.ModelProvider) []list.Item {
 func NewModel(store *models.ProjectStore) *Model {
 	ideExec := commands.NewIDEExecutor()
 	m := &Model{
-		store:        store,
-		ideExec:      ideExec,
-		state:        StateList,
-		searchQuery:  "",
+		store:       store,
+		ideExec:     ideExec,
+		state:       StateList,
+		searchQuery: "",
 	}
 
 	items := newListItems(store.Projects)
@@ -276,8 +278,8 @@ func (m *Model) initProviderList() {
 // projectListDelegate 项目列表自定义渲染
 type projectListDelegate struct{}
 
-func (d projectListDelegate) Height() int                          { return 1 }
-func (d projectListDelegate) Spacing() int                         { return 1 }
+func (d projectListDelegate) Height() int                               { return 1 }
+func (d projectListDelegate) Spacing() int                              { return 1 }
 func (d projectListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item list.Item) {
 	proj, ok := item.(listItem)
@@ -325,41 +327,26 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 // providerListDelegate 自定义列表项渲染
 type providerListDelegate struct{}
 
-func (d providerListDelegate) Height() int { return 2 }
-func (d providerListDelegate) Spacing() int { return 1 }
+func (d providerListDelegate) Height() int                               { return 2 }
+func (d providerListDelegate) Spacing() int                              { return 1 }
 func (d providerListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
-func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item list.Item) {
+func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	p, ok := item.(providerListItem)
 	if !ok {
 		return
 	}
 
 	provider := p.provider
-
-	// 获取当前选中索引（相对于整个列表）
-	selectedIndex := m.Index()
-
-	// 找到当前项在列表中的索引
-	itemIndex := -1
-	for i, listItem := range m.Items() {
-		if listItem.FilterValue() == item.FilterValue() {
-			itemIndex = i
-			break
-		}
-	}
-
-	// 检查是否是选中状态
-	isSelected := itemIndex == selectedIndex
+	isSelected := index == m.Index()
+	rowWidth := max(20, m.Width())
 
 	// 激活标签样式
 	activeTag := ""
 	if provider.Active {
 		activeTag = lipgloss.NewStyle().
 			Foreground(SuccessColor).
-			Background(lipgloss.Color("#0F2618")).
-			Padding(0, 1).
-			MarginLeft(1).
-			Render("[激活]")
+			Bold(true).
+			Render("● 激活")
 	}
 
 	// 名称样式 - 选中时使用主色高亮
@@ -381,22 +368,40 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 		selectorStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
 	}
 
-	// 构建显示内容
-	var line string
-	if provider.Active {
+	selectorWidth := lipgloss.Width(selector)
+	activeWidth := lipgloss.Width(activeTag)
+	nameWidth := rowWidth - selectorWidth
+	if activeWidth > 0 {
+		nameWidth -= activeWidth + 1
+	}
+	nameWidth = max(8, nameWidth)
+
+	name := ansi.Truncate(provider.Name, nameWidth, "…")
+	line := selectorStyle.Render(selector) + nameStyle.Render(name)
+	if activeWidth > 0 {
+		gapWidth := rowWidth - selectorWidth - lipgloss.Width(name) - activeWidth
+		if gapWidth < 1 {
+			name = ansi.Truncate(provider.Name, max(6, nameWidth-1+gapWidth), "…")
+			line = selectorStyle.Render(selector) + nameStyle.Render(name)
+			gapWidth = rowWidth - selectorWidth - lipgloss.Width(name) - activeWidth
+		}
 		line = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			selectorStyle.Render(selector),
-			nameStyle.Width(16).Render(provider.Name),
-			"  ",
+			line,
+			strings.Repeat(" ", max(1, gapWidth)),
 			activeTag,
 		)
-	} else {
-		line = selectorStyle.Render(selector) + nameStyle.Width(16).Render(provider.Name)
 	}
+	line = lipgloss.NewStyle().Width(rowWidth).Render(line)
 
 	// 第二行：URL 和模型
-	secondLine := "  " + infoStyle.Render(provider.BaseURL+" • "+provider.Model)
+	infoText := provider.BaseURL
+	if provider.Model != "" {
+		infoText += " • " + provider.Model
+	}
+	infoPrefix := strings.Repeat(" ", selectorWidth)
+	infoWidth := max(8, rowWidth-selectorWidth)
+	secondLine := infoPrefix + infoStyle.Render(ansi.Truncate(infoText, infoWidth, "…"))
 
 	// 使用换行符连接
 	content := lipgloss.JoinVertical(

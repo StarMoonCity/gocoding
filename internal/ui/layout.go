@@ -30,7 +30,17 @@ func (m *Model) SetSize(width, height int) {
 	m.list.SetSize(config.listWidth, config.listHeight)
 
 	// 设置模型配置列表大小
-	m.providerList.SetSize(60, config.listHeight)
+	m.providerList.SetSize(m.providerListWidth(), config.listHeight)
+
+	providerInputWidth := max(20, m.providerDialogWidth()-14)
+	m.providerNameInput.Width = providerInputWidth
+	m.providerBaseURLInput.Width = providerInputWidth
+	m.providerAPIKeyInput.Width = providerInputWidth
+	m.providerModelInput.Width = providerInputWidth
+	m.providerThinkingModelInput.Width = providerInputWidth
+	m.providerDefaultHaikuInput.Width = providerInputWidth
+	m.providerDefaultSonnetInput.Width = providerInputWidth
+	m.providerDefaultOpusInput.Width = providerInputWidth
 
 	// 设置文本区域大小
 	m.ta.SetWidth(width - 10)
@@ -43,6 +53,14 @@ func (m *Model) SetSize(width, height int) {
 		m.viewport.Width = detailWidth
 		m.viewport.Height = detailHeight
 	}
+}
+
+func (m *Model) providerDialogWidth() int {
+	return min(72, max(46, m.width-10))
+}
+
+func (m *Model) providerListWidth() int {
+	return max(30, m.providerDialogWidth()-4)
 }
 
 func (m *Model) calculateLayout(width, height int) LayoutConfig {

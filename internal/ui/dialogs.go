@@ -25,15 +25,17 @@ func (m *Model) viewAddProject() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("添加项目"),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("＋ 添加项目"),
 				"",
-				InfoStyle.Render("项目路径"),
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("项目路径"),
 				inputStyle.Render(m.input.View()),
 				"",
-				InfoStyle.Render("项目名称"),
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("项目名称"),
 				inputStyle.Render(m.secondaryInput.View()),
 				"",
-				HelpStyle.Render("[enter] 确认 · [tab] 切换 · [esc] 取消"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
 
@@ -58,12 +60,14 @@ func (m *Model) viewRenameProject() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("重命名项目"),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("✎ 重命名项目"),
 				"",
-				InfoStyle.Render("新名称"),
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("新名称"),
 				m.input.View(),
 				"",
-				HelpStyle.Render("[enter] 确认 · [esc] 取消"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Enter] 确认  ·  [Esc] 取消"),
 			),
 		)
 
@@ -77,13 +81,14 @@ func (m *Model) viewRenameProject() string {
 
 func (m *Model) viewDeleteConfirm() string {
 	current := m.list.SelectedItem().(listItem)
-	message := fmt.Sprintf("确认删除项目 '%s' ?", current.project.Alias)
+	message := fmt.Sprintf("确认删除项目 '%s' ？", current.project.Alias)
 
 	dialogWidth := min(50, m.width-10)
 
+	// 使用 DoubleBorder 更严肃
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(ErrorColor).
 		Background(Background).
 		Foreground(Foreground).
@@ -91,18 +96,33 @@ func (m *Model) viewDeleteConfirm() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("删除项目"),
+				lipgloss.NewStyle().
+					Foreground(ErrorColor).
+					Bold(true).
+					Render("✗ 删除项目"),
 				"",
-				lipgloss.NewStyle().Foreground(ErrorColor).Bold(true).Render(message),
+				lipgloss.NewStyle().
+					Foreground(Foreground).
+					Render(message),
 				"",
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
-					GetStatusStyle(true).Render("[y] 是"),
+					lipgloss.NewStyle().
+						Foreground(ErrorColor).
+						Background(lipgloss.Color("#2C1810")).
+						Padding(0, 2).
+						Render("[ Y ] 是"),
 					"  ",
-					GetStatusStyle(true).Render("[n] 否"),
+					lipgloss.NewStyle().
+						Foreground(SecondaryText).
+						Background(BackgroundLight).
+						Padding(0, 2).
+						Render("[ N ] 否"),
 				),
 				"",
-				HelpStyle.Render("此操作不可恢复"),
+				lipgloss.NewStyle().
+					Foreground(MutedText).
+					Render("此操作不可恢复"),
 			),
 		)
 
@@ -119,16 +139,30 @@ func (m *Model) viewIDEMenu() string {
 	for i, opt := range m.ideMenu.options {
 		available := m.ideMenu.available[opt.Type]
 		var prefix string
+		var nameStyle lipgloss.Style
 		if i == m.ideMenu.selected {
-			prefix = IDESelectedStyle.Render(" ● ")
+			prefix = lipgloss.NewStyle().
+				Foreground(PrimaryColor).
+				Render("▸ ")
+			nameStyle = lipgloss.NewStyle().
+				Foreground(AccentColor).
+				Bold(true)
 		} else {
-			prefix = "   "
+			prefix = "  "
+			nameStyle = lipgloss.NewStyle().
+				Foreground(Foreground).
+				Bold(true)
 		}
-		availability := GetStatusStyle(available).Render("✓ ")
-		if !available {
-			availability = GetStatusStyle(false).Render("✗ ")
+		var statusIcon string
+		if available {
+			statusIcon = lipgloss.NewStyle().Foreground(SuccessColor).Render("●")
+		} else {
+			statusIcon = lipgloss.NewStyle().Foreground(MutedText).Render("○")
 		}
-		options = append(options, prefix+availability+lipgloss.NewStyle().Bold(true).Render(opt.Name)+"  "+opt.Description)
+		options = append(options,
+			prefix+statusIcon+"  "+
+				nameStyle.Render(opt.Name)+
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("  "+opt.Description))
 	}
 
 	dialogWidth := min(40, m.width-10)
@@ -143,11 +177,13 @@ func (m *Model) viewIDEMenu() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("选择 IDE"),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("▣ 选择 IDE"),
 				"",
 				lipgloss.JoinVertical(lipgloss.Left, options...),
 				"",
-				HelpStyle.Render("[enter] 打开 · [esc] 返回"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[↑↓] 选择  ·  [Enter] 打开  ·  [Esc] 返回"),
 			),
 		)
 
@@ -166,12 +202,12 @@ func (m *Model) viewViewDetail() string {
 		Foreground(PrimaryColor).
 		Bold(true).
 		Align(lipgloss.Center).
-		Render("项目详情")
+		Render("▤ 项目详情")
 
 	dialog := lipgloss.NewStyle().
 		Width(m.width-10).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(SecondaryColor).
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(SecondaryText).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
@@ -182,7 +218,9 @@ func (m *Model) viewViewDetail() string {
 				"",
 				m.viewport.View(),
 				"",
-				HelpStyle.Render("[esc] 返回 · [q] 退出"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Esc] 返回  ·  [Q] 退出"),
 			),
 		)
 
@@ -207,12 +245,14 @@ func (m *Model) viewEditDescription() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("编辑项目描述"),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("✎ 编辑描述"),
 				"",
-				InfoStyle.Render("描述 (支持多行)"),
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("描述（支持多行）"),
 				m.ta.View(),
 				"",
-				HelpStyle.Render("[enter/ctrl+s] 保存 · [esc] 取消"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Enter/Ctrl+S] 保存  ·  [Esc] 取消"),
 			),
 		)
 
@@ -230,42 +270,39 @@ func (m *Model) viewProviderList() string {
 		Foreground(PrimaryColor).
 		Bold(true).
 		Align(lipgloss.Center).
-		Render("模型配置")
+		Render("⚙ 模型配置")
 
 	listView := m.providerList.View()
 
 	dialogWidth := min(60, m.width-10)
 
-	// 错误消息显示
+	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
-		errDisplay = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Background(lipgloss.Color("#2C1810")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Align(lipgloss.Center).
-			Width(dialogWidth - 4).
-			Render("⚠ " + m.errMsg)
+		errDisplay = ErrorBoxStyle.Width(dialogWidth - 4).Render("✗ " + m.errMsg)
 	}
 
-	// 提示消息显示
+	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = lipgloss.NewStyle().
-			Foreground(SecondaryColor).
-			Background(lipgloss.Color("#1A2F1A")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Align(lipgloss.Center).
-			Width(dialogWidth - 4).
-			Render("💡 " + m.tipMsg)
+		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
 	}
 
 	helpText := lipgloss.NewStyle().
-		Foreground(SecondaryColor).
+		Foreground(SecondaryText).
 		Align(lipgloss.Center).
-		Render("↑/↓ j/k 选择 | n 新增 | e 编辑 | d 删除 | a 激活 | q/esc 退出")
+		Render(
+			lipgloss.JoinHorizontal(lipgloss.Left,
+				lipgloss.NewStyle().Foreground(MutedText).Render("│"),
+				" ",
+				HelpKeyStyle.Render("[↑↓]"), " 选择 ",
+				HelpKeyStyle.Render("[N]"), " 新增 ",
+				HelpKeyStyle.Render("[E]"), " 编辑 ",
+				HelpKeyStyle.Render("[D]"), " 删除 ",
+				HelpKeyStyle.Render("[A]"), " 激活 ",
+				HelpKeyStyle.Render("[Esc]"), " 退出",
+			),
+		)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -297,9 +334,9 @@ func (m *Model) viewProviderList() string {
 
 // viewProviderForm 模型配置表单（新增/编辑共用）
 func (m *Model) viewProviderForm(isEdit bool) string {
-	title := "添加配置"
+	title := "＋ 添加配置"
 	if isEdit {
-		title = "编辑配置"
+		title = "✎ 编辑配置"
 	}
 
 	dialogWidth := min(60, m.width-10)
@@ -310,44 +347,32 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		Width(dialogWidth - 10).
 		Padding(0, 1)
 
-	// 当前焦点的输入框高亮显示
+	// 当前焦点的输入框高亮
 	nameStyle := inputStyle
 	baseURLStyle := inputStyle
 	apiKeyStyle := inputStyle
 	modelStyle := inputStyle
 
 	if m.providerInputFocus == FocusProviderName {
-		nameStyle = nameStyle.BorderForeground(SecondaryColor)
+		nameStyle = nameStyle.BorderForeground(AccentColor)
 	} else if m.providerInputFocus == FocusProviderBaseURL {
-		baseURLStyle = baseURLStyle.BorderForeground(SecondaryColor)
+		baseURLStyle = baseURLStyle.BorderForeground(AccentColor)
 	} else if m.providerInputFocus == FocusProviderAPIKey {
-		apiKeyStyle = apiKeyStyle.BorderForeground(SecondaryColor)
+		apiKeyStyle = apiKeyStyle.BorderForeground(AccentColor)
 	} else if m.providerInputFocus == FocusProviderModel {
-		modelStyle = modelStyle.BorderForeground(SecondaryColor)
+		modelStyle = modelStyle.BorderForeground(AccentColor)
 	}
 
-	// 错误消息显示
+	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
-		errDisplay = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Background(lipgloss.Color("#2C1810")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Width(dialogWidth - 4).
-			Render("⚠ " + m.errMsg)
+		errDisplay = ErrorBoxStyle.Width(dialogWidth - 4).Render("✗ " + m.errMsg)
 	}
 
-	// 提示消息显示
+	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = lipgloss.NewStyle().
-			Foreground(SecondaryColor).
-			Background(lipgloss.Color("#1A2F1A")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Width(dialogWidth - 4).
-			Render("💡 " + m.tipMsg)
+		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
 	}
 
 	dialog := lipgloss.NewStyle().
@@ -360,26 +385,28 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render(title),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(title),
 				"",
 				lipgloss.JoinVertical(
 					lipgloss.Left,
-					InfoStyle.Render("配置名称"),
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("配置名称"),
 					nameStyle.Render(m.providerNameInput.View()),
 					"",
-					InfoStyle.Render("Base URL"),
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("Base URL"),
 					baseURLStyle.Render(m.providerBaseURLInput.View()),
 					"",
-					InfoStyle.Render("API Key"),
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("API Key"),
 					apiKeyStyle.Render(m.providerAPIKeyInput.View()),
 					"",
-					InfoStyle.Render("模型名称"),
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("模型名称"),
 					modelStyle.Render(m.providerModelInput.View()),
 				),
 				tipDisplay,
 				errDisplay,
 				"",
-				HelpStyle.Render("[enter] 保存 · [tab] 切换 · [esc] 取消"),
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Enter] 保存  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
 
@@ -394,13 +421,13 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 // viewProviderDelete 确认删除配置
 func (m *Model) viewProviderDelete() string {
 	current := m.providerList.SelectedItem().(providerListItem)
-	message := fmt.Sprintf("确认删除配置 '%s' ?", current.provider.Name)
+	message := fmt.Sprintf("确认删除配置 '%s' ？", current.provider.Name)
 
 	dialogWidth := min(50, m.width-10)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(ErrorColor).
 		Background(Background).
 		Foreground(Foreground).
@@ -408,18 +435,26 @@ func (m *Model) viewProviderDelete() string {
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				TitleStyle.Render("删除配置"),
+				lipgloss.NewStyle().Foreground(ErrorColor).Bold(true).Render("✗ 删除配置"),
 				"",
-				lipgloss.NewStyle().Foreground(ErrorColor).Bold(true).Render(message),
+				lipgloss.NewStyle().Foreground(Foreground).Render(message),
 				"",
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
-					GetStatusStyle(true).Render("[y] 是"),
+					lipgloss.NewStyle().
+						Foreground(ErrorColor).
+						Background(lipgloss.Color("#2C1810")).
+						Padding(0, 2).
+						Render("[ Y ] 是"),
 					"  ",
-					GetStatusStyle(true).Render("[n] 否"),
+					lipgloss.NewStyle().
+						Foreground(SecondaryText).
+						Background(BackgroundLight).
+						Padding(0, 2).
+						Render("[ N ] 否"),
 				),
 				"",
-				HelpStyle.Render("此操作不可恢复"),
+				lipgloss.NewStyle().Foreground(MutedText).Render("此操作不可恢复"),
 			),
 		)
 

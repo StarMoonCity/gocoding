@@ -159,13 +159,12 @@ func NewModel(store *models.ProjectStore) *Model {
 		items[i] = listItem{project: p}
 	}
 
-	delegate := list.NewDefaultDelegate()
-	delegate.SetSpacing(0) // 紧凑间距
+	delegate := projectListDelegate{}
 
 	// 初始大小，后续 SetSize 会重新设置
 	m.list = list.New(items, delegate, 60, 14)
 	m.list.Title = ""
-	m.list.Styles.Title = lipgloss.NewStyle().Foreground(SecondaryColor).Bold(true).MarginBottom(1)
+	m.list.Styles.Title = lipgloss.NewStyle().Foreground(SecondaryText).Bold(true).MarginBottom(1)
 	m.list.SetShowTitle(false)
 	m.list.SetShowStatusBar(false)
 	m.list.SetShowHelp(false) // 禁用列表内置帮助，使用自定义帮助文本
@@ -239,6 +238,63 @@ func (m *Model) initProviderList() {
 	m.providerList.SetFilteringEnabled(true)
 }
 
+// projectListDelegate 项目列表自定义渲染
+type projectListDelegate struct{}
+
+func (d projectListDelegate) Height() int                          { return 1 }
+func (d projectListDelegate) Spacing() int                         { return 1 }
+func (d projectListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item list.Item) {
+	proj, ok := item.(listItem)
+	if !ok {
+		return
+	}
+
+	selectedIndex := m.Index()
+	itemIndex := -1
+	for i, it := range m.Items() {
+		if it.FilterValue() == item.FilterValue() {
+			itemIndex = i
+			break
+		}
+	}
+	isSelected := itemIndex == selectedIndex
+
+	// 选中标记
+	selector := "  "
+	selectorStyle := lipgloss.NewStyle().Foreground(MutedText)
+	if isSelected {
+		selector = "▸ "
+		selectorStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
+	}
+
+	// 名称
+	nameStyle := lipgloss.NewStyle().Bold(true)
+	if isSelected {
+		nameStyle = nameStyle.Foreground(AccentColor)
+	} else {
+		nameStyle = nameStyle.Foreground(Foreground)
+	}
+
+	// 打开次数徽章
+	countBadge := lipgloss.NewStyle().
+		Foreground(SecondaryText).
+		Background(BackgroundLight).
+		Padding(0, 1).
+		MarginLeft(1).
+		Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+
+	// 组合第一行
+	firstLine := lipgloss.JoinHorizontal(
+		lipgloss.Left,
+		selectorStyle.Render(selector),
+		nameStyle.Render(proj.project.Alias),
+		countBadge,
+	)
+
+	fmt.Fprintf(w, "%s", firstLine)
+}
+
 // providerListDelegate 自定义列表项渲染
 type providerListDelegate struct{}
 
@@ -272,27 +328,28 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 	activeTag := ""
 	if provider.Active {
 		activeTag = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#22C55E")).
-			Background(lipgloss.Color("#14532D")).
+			Foreground(SuccessColor).
+			Background(lipgloss.Color("#0F2618")).
 			Padding(0, 1).
+			MarginLeft(1).
 			Render("[激活]")
 	}
 
 	// 名称样式 - 选中时高亮
 	nameStyle := lipgloss.NewStyle().Bold(true)
 	if isSelected {
-		nameStyle = nameStyle.Foreground(lipgloss.Color("#FFD700"))
+		nameStyle = nameStyle.Foreground(AccentColor)
 	} else {
 		nameStyle = nameStyle.Foreground(PrimaryColor)
 	}
 
 	// URL 和模型样式
-	infoStyle := lipgloss.NewStyle().Foreground(SecondaryColor)
+	infoStyle := lipgloss.NewStyle().Foreground(SecondaryText)
 
 	// 选中标记
 	selector := "  "
 	if isSelected {
-		selector = "▶ "
+		selector = "▸ "
 	}
 
 	// 构建显示内容

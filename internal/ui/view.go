@@ -15,19 +15,34 @@ func (m *Model) updateViewport() {
 	current := m.list.SelectedItem().(listItem)
 	p := current.project
 
-	content := fmt.Sprintf(`项目详情
+	// 使用更丰富的详情展示
+	infoLine := func(label, value string) string {
+		return lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			lipgloss.NewStyle().Foreground(SecondaryText).Width(10).Render(label),
+			lipgloss.NewStyle().Foreground(Foreground).Render(value),
+		)
+	}
 
-名称: %s
-路径: %s
-打开次数: %d
-创建时间: %s
-最后打开: %s
+	openCountBadge := lipgloss.NewStyle().
+		Foreground(SuccessColor).
+		Background(lipgloss.Color("#0F2618")).
+		Padding(0, 1).
+		Render("打开 " + string(rune(p.OpenCount+'0')) + " 次")
 
-描述:
-%s`, p.Alias, p.Path, p.OpenCount,
-		p.CreatedAt.Format("2006-01-02 15:04:05"),
-		p.LastOpened.Format("2006-01-02 15:04:05"),
-		p.Description)
+	content := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(p.Alias),
+		"",
+		infoLine("路径", p.Path),
+		infoLine("打开次数", openCountBadge),
+		infoLine("创建时间", p.CreatedAt.Format("2006-01-02 15:04:05")),
+		infoLine("最后打开", p.LastOpened.Format("2006-01-02 15:04:05")),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Bold(true).MarginTop(1).Render("描述"),
+		"",
+		lipgloss.NewStyle().Foreground(Foreground).Render(p.Description),
+	)
 
 	m.viewport.SetContent(content)
 }
@@ -62,43 +77,42 @@ func (m *Model) View() string {
 }
 
 func (m *Model) viewList() string {
-	// 响应式标题大小
-	header := lipgloss.NewStyle().
+	// 标题 - 带装饰
+	headerStyle := lipgloss.NewStyle().
 		Foreground(PrimaryColor).
 		Bold(true).
-		Align(lipgloss.Center).
-		Render("Gocoding · 项目管理")
+		Align(lipgloss.Center)
 
-	// 响应式帮助文本
+	titleText := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		lipgloss.NewStyle().Foreground(MutedText).Render("┌"),
+		lipgloss.NewStyle().Foreground(PrimaryColor).Render(" Gocoding "),
+		lipgloss.NewStyle().Foreground(MutedText).Render("项目管理 "),
+		lipgloss.NewStyle().Foreground(MutedText).Render("┐"),
+	)
+
+	header := headerStyle.Render(titleText)
+
 	helpNav := m.renderHelpText()
-
 	config := m.calculateLayout(m.width, m.height)
-
 	content := m.renderContent(config)
 
 	emptyMsg := ""
 	if len(m.list.Items()) == 0 {
 		emptyMsg = lipgloss.NewStyle().
-			Foreground(SecondaryColor).
+			Foreground(SecondaryText).
 			Align(lipgloss.Center).
 			Padding(1, 0).
-			Render("没有项目，按 [n] 添加")
+			Render("暂无项目按 [n] 添加")
 	}
 
-	// 错误消息显示
+	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
-		errDisplay = lipgloss.NewStyle().
-			Foreground(ErrorColor).
-			Background(lipgloss.Color("#2C1810")).
-			Padding(1, 2).
-			MarginBottom(1).
-			Align(lipgloss.Center).
-			Width(m.width - config.paddingX*2 - 4).
-			Render("⚠ " + m.errMsg)
+		errDisplay = ErrorBoxStyle.Render("✗ " + m.errMsg)
 	}
 
-	// 主内容区域（设置宽度以居中显示）
+	// 主内容
 	mainContent := lipgloss.NewStyle().
 		Width(m.width - config.paddingX*2).
 		Align(lipgloss.Center).
@@ -125,22 +139,129 @@ func (m *Model) viewList() string {
 func (m *Model) renderHelpText() string {
 	config := m.calculateLayout(m.width, m.height)
 
+	// 快捷键分隔符
+	sep := lipgloss.NewStyle().Foreground(MutedText).Render(" │ ")
+
+	quit := lipgloss.NewStyle().Foreground(SecondaryText).Render("退出")
+	nav := lipgloss.NewStyle().Foreground(SecondaryText).Render("导航")
+
 	switch config.helpTextMode {
 	case HelpTextCompact:
 		return lipgloss.NewStyle().
-			Foreground(SecondaryColor).
+			Foreground(SecondaryText).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ 移动 | n 添加 | / 搜索 | p 配置 | q 退出")
+			Render(
+				lipgloss.JoinHorizontal(lipgloss.Left, sep,
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[↑↓]"),
+						nav,
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[n]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("添加"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[/]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("搜索"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[p]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("配置"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[q]"),
+						quit,
+					),
+				),
+			)
 	case HelpTextNormal:
 		return lipgloss.NewStyle().
-			Foreground(SecondaryColor).
+			Foreground(SecondaryText).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ j/k 移动 | n 添加 | / 搜索 | r 重命名 | d 删除 | p 配置 | enter 选择 | q 退出")
+			Render(
+				lipgloss.JoinHorizontal(lipgloss.Left, sep,
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[↑↓]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("导航"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[/]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("搜索"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[n]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("添加"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[r]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("重命名"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[d]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("删除"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[p]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("配置"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[q]"),
+						quit,
+					),
+				),
+			)
 	default:
 		return lipgloss.NewStyle().
-			Foreground(SecondaryColor).
+			Foreground(SecondaryText).
 			MarginLeft(config.paddingX).
-			Render("↑/↓ j/k 导航 | / 搜索 | n 添加 | v 详情 | e 描述 | r 重命名 | d 删除 | p 配置 | enter IDE | 1/2/3 快速打开 | q 退出")
+			Render(
+				lipgloss.JoinHorizontal(lipgloss.Left, sep,
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[↑↓/j/k]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("导航"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[/]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("搜索"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[n]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("添加"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[v]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("详情"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[e]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("描述"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[r]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("重命名"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[d]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("删除"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[p]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("配置"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[Enter]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("IDE"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[1/2/3]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("快速打开"),
+					),
+					lipgloss.JoinHorizontal(lipgloss.Left, " ",
+						HelpKeyStyle.Render("[q]"),
+						quit,
+					),
+				),
+			)
 	}
 }
 
@@ -203,40 +324,49 @@ func (m *Model) renderDoubleColumn(config LayoutConfig) string {
 func (m *Model) viewSearch() string {
 	config := m.calculateLayout(m.width, m.height)
 
-	// 搜索框
+	// 搜索框 - 带图标和装饰
+	searchIcon := lipgloss.NewStyle().Foreground(PrimaryColor).Render("🔍")
 	searchBox := lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Background(lipgloss.Color("#1a1a2e")).
-		Padding(0, 1).
-		Render("搜索: " + m.searchQuery + "_")
+		Background(BackgroundLight).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(PrimaryColor).
+		Padding(0, 2).
+		Width(m.width - config.paddingX*2 - 10).
+		Render(searchIcon + " " + m.searchQuery + "_")
 
-	// 搜索状态提示
-	statusText := fmt.Sprintf("%d/%d 项目", len(m.list.Items()), m.store.Len())
-
-	status := lipgloss.NewStyle().
-		Foreground(SecondaryColor).
-		MarginLeft(config.paddingX).
-		Render(statusText)
+	// 搜索状态
+	statusText := lipgloss.NewStyle().Foreground(SecondaryText).Render(
+		fmt.Sprintf("%d / %d 项目", len(m.list.Items()), m.store.Len()),
+	)
 
 	// 帮助文本
 	helpText := lipgloss.NewStyle().
-		Foreground(SecondaryColor).
+		Foreground(SecondaryText).
 		MarginLeft(config.paddingX).
-		Render("↑/↓ j/k 选择 | enter IDE | 1/2/3 快速打开 | backspace 删除 | esc 返回")
+		Render(
+			lipgloss.JoinHorizontal(lipgloss.Left,
+				lipgloss.NewStyle().Foreground(MutedText).Render("│"),
+				" ",
+				HelpKeyStyle.Render("[↑↓]"),
+				" 选择 ",
+				HelpKeyStyle.Render("[Enter]"),
+				" 打开 ",
+				HelpKeyStyle.Render("[Esc]"),
+				" 返回",
+			),
+		)
 
-	// 渲染列表
 	listView := m.renderSingleColumn(config)
 
 	emptyMsg := ""
 	if len(m.list.Items()) == 0 {
 		emptyMsg = lipgloss.NewStyle().
-			Foreground(SecondaryColor).
+			Foreground(SecondaryText).
 			Align(lipgloss.Center).
 			Padding(1, 0).
 			Render("没有匹配的项目")
 	}
 
-	// 主内容区域
 	mainContent := lipgloss.NewStyle().
 		Width(m.width - config.paddingX*2).
 		Align(lipgloss.Center).
@@ -248,7 +378,7 @@ func (m *Model) viewSearch() string {
 				listView,
 				emptyMsg,
 				"",
-				status,
+				statusText,
 				"",
 				helpText,
 			),

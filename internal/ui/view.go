@@ -12,8 +12,12 @@ func (m *Model) updateViewport() {
 		m.viewport.SetContent("")
 		return
 	}
-	current := m.list.SelectedItem().(listItem)
-	p := current.project
+	current := m.safeGetSelectedProject()
+	if current == nil {
+		m.viewport.SetContent("")
+		return
+	}
+	p := *current
 
 	// 使用更丰富的详情展示
 	infoLine := func(label, value string) string {
@@ -93,8 +97,8 @@ func (m *Model) viewList() string {
 
 	header := headerStyle.Render(titleText)
 
-	helpNav := m.renderHelpText()
 	config := m.calculateLayout(m.width, m.height)
+	helpNav := m.renderHelpText(config)
 	content := m.renderContent(config)
 
 	emptyMsg := ""
@@ -136,9 +140,7 @@ func (m *Model) viewList() string {
 }
 
 // renderHelpText 根据屏幕宽度渲染不同长度的帮助文本
-func (m *Model) renderHelpText() string {
-	config := m.calculateLayout(m.width, m.height)
-
+func (m *Model) renderHelpText(config LayoutConfig) string {
 	// 快捷键分隔符
 	sep := lipgloss.NewStyle().Foreground(MutedText).Render(" │ ")
 

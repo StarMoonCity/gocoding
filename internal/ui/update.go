@@ -12,9 +12,15 @@ import (
 	"gocoding/internal/models"
 )
 
+// 消息类型常量
+const (
+	msgTypeErr = "err"
+	msgTypeTip = "tip"
+)
+
 // clearProviderMessageMsg 自定义消息，用于清除提供商表单的消息
 type clearProviderMessageMsg struct {
-	msgType string // "err" 或 "tip"
+	msgType string
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -24,9 +30,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case clearProviderMessageMsg:
 		// 清除消息
-		if msg.msgType == "err" {
+		if msg.msgType == msgTypeErr {
 			m.errMsg = ""
-		} else if msg.msgType == "tip" {
+		} else if msg.msgType == msgTypeTip {
 			m.tipMsg = ""
 		}
 		return m, nil
@@ -53,10 +59,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleSearchKeyMsg(msg)
 		case StateProviderList:
 			return m.handleProviderListKeyMsg(msg)
-		case StateProviderAdd:
-			return m.handleProviderAddKeyMsg(msg)
-		case StateProviderEdit:
-			return m.handleProviderEditKeyMsg(msg)
+		case StateProviderAdd, StateProviderEdit:
+			return m.handleProviderFormKeyMsg(msg)
 		case StateProviderDelete:
 			return m.handleProviderDeleteKeyMsg(msg)
 		}
@@ -109,22 +113,20 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, textinput.Blink
 	case "e":
 		// 编辑选中项目的描述
-		if len(m.list.Items()) > 0 {
+		if current := m.safeGetSelectedProject(); current != nil {
 			m.state = StateEditDescription
-			current := m.list.SelectedItem().(listItem)
-			m.ta.SetValue(current.project.Description)
+			m.ta.SetValue(current.Description)
 		}
 		return m, nil
 	case "r":
-		if len(m.list.Items()) > 0 {
+		if current := m.safeGetSelectedProject(); current != nil {
 			m.state = StateRenameProject
-			current := m.list.SelectedItem().(listItem)
-			m.input.SetValue(current.project.Alias)
+			m.input.SetValue(current.Alias)
 			m.input.Focus()
 		}
 		return m, textinput.Blink
 	case "d":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			m.state = StateDeleteConfirm
 		}
 	case "v":
@@ -134,22 +136,22 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.updateViewport()
 		}
 	case "enter":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			m.state = StateIDEMenu
 			for _, opt := range m.ideMenu.options {
 				m.ideMenu.available[opt.Type] = m.ideExec.IsIDEAvailable(opt.Type)
 			}
 		}
 	case "1":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEClaudeCode)
 		}
 	case "2":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEVSCode)
 		}
 	case "3":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEOpenCode)
 		}
 	case "p":
@@ -239,15 +241,10 @@ func (m *Model) handleRenameKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
 		alias := m.input.Value()
-		if alias != "" {
-			current := m.list.SelectedItem().(listItem)
-			current.project.Alias = alias
-			m.store.Update(alias, current.project.ID)
-			items := make([]list.Item, len(m.store.Projects))
-			for i, p := range m.store.Projects {
-				items[i] = listItem{project: p}
-			}
-			m.list.SetItems(items)
+		if alias != "" && m.safeGetSelectedProject() != nil {
+			current := m.safeGetSelectedProject()
+			m.store.Update(alias, current.ID)
+			m.syncListItems()
 		}
 		m.state = StateList
 	case "esc":
@@ -266,11 +263,7 @@ func (m *Model) handleDeleteConfirmKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "y", "enter":
 		current := m.list.SelectedItem().(listItem)
 		m.store.Remove(current.project.ID)
-		items := make([]list.Item, len(m.store.Projects))
-		for i, p := range m.store.Projects {
-			items[i] = listItem{project: p}
-		}
-		m.list.SetItems(items)
+		m.syncListItems()
 		m.state = StateList
 	case "n", "esc":
 		m.state = StateList
@@ -310,11 +303,15 @@ func (m *Model) handleIDEMenuKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) openWithIDE(ideType models.IDEType) (tea.Model, tea.Cmd) {
-	current := m.list.SelectedItem().(listItem)
-	current.project.UpdateLastOpened()
-	m.store.Update(current.project.Alias, current.project.ID)
+	idx := m.list.Index()
+	current := m.store.GetByIndex(idx)
+	if current == nil {
+		m.state = StateList
+		return m, nil
+	}
+	current.UpdateLastOpened()
 
-	if err := m.ideExec.OpenProject(&current.project, ideType); err != nil {
+	if err := m.ideExec.OpenProject(current, ideType); err != nil {
 		m.errMsg = err.Error()
 		// 3秒后清除错误消息
 		return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
@@ -327,11 +324,7 @@ func (m *Model) openWithIDE(ideType models.IDEType) (tea.Model, tea.Cmd) {
 	m.store.SortByLastOpened()
 
 	// 重新渲染列表
-	items := make([]list.Item, len(m.store.Projects))
-	for i, p := range m.store.Projects {
-		items[i] = listItem{project: p}
-	}
-	m.list.SetItems(items)
+	m.syncListItems()
 	// 定位到最近打开的项目（第一个）
 	m.list.Select(0)
 
@@ -352,10 +345,8 @@ func (m *Model) handleViewDetailKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleEditDescriptionKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter", "ctrl+s":
-		if len(m.list.Items()) > 0 {
-			current := m.list.SelectedItem().(listItem)
-			current.project.Description = m.ta.Value()
-			m.store.UpdateDescription(current.project.ID, m.ta.Value())
+		if current := m.safeGetSelectedProject(); current != nil {
+			m.store.UpdateDescription(current.ID, m.ta.Value())
 		}
 		m.state = StateList
 	case "esc":
@@ -376,7 +367,7 @@ func (m *Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "enter":
 		// 打开选中的项目
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			m.state = StateIDEMenu
 			for _, opt := range m.ideMenu.options {
 				m.ideMenu.available[opt.Type] = m.ideExec.IsIDEAvailable(opt.Type)
@@ -404,15 +395,15 @@ func (m *Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.updateListItems()
 		return m, nil
 	case "1":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEClaudeCode)
 		}
 	case "2":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEVSCode)
 		}
 	case "3":
-		if len(m.list.Items()) > 0 {
+		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEOpenCode)
 		}
 	case "ctrl+c", "ctrl+q":
@@ -470,69 +461,67 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, textinput.Blink
 	case "e":
 		// 编辑选中配置
-		if len(m.providerList.Items()) > 0 {
+		if current := m.safeGetSelectedProvider(); current != nil {
 			m.state = StateProviderEdit
-			current := m.providerList.SelectedItem().(providerListItem)
-			m.editingProviderID = current.provider.ID
+			m.editingProviderID = current.ID
 			m.providerInputFocus = FocusProviderName
-			m.providerNameInput.SetValue(current.provider.Name)
+			m.providerNameInput.SetValue(current.Name)
 			m.providerNameInput.Focus()
-			m.providerBaseURLInput.SetValue(current.provider.BaseURL)
+			m.providerBaseURLInput.SetValue(current.BaseURL)
 			m.providerBaseURLInput.Blur()
-			m.providerAPIKeyInput.SetValue(current.provider.APIKey)
+			m.providerAPIKeyInput.SetValue(current.APIKey)
 			m.providerAPIKeyInput.Blur()
-			m.providerModelInput.SetValue(current.provider.Model)
+			m.providerModelInput.SetValue(current.Model)
 			m.providerModelInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
 		}
 	case "d":
 		// 删除确认
-		if len(m.providerList.Items()) > 0 {
+		if m.safeGetSelectedProvider() != nil {
 			m.state = StateProviderDelete
 		}
 	case "a":
 		// 激活选中配置
-		if len(m.providerList.Items()) > 0 {
-			current := m.providerList.SelectedItem().(providerListItem)
-			m.providerStore.SetActive(current.provider.ID)
-			// 写入 Claude settings.json 并备份
-			alreadySet, err := config.WriteToClaudeSettings(&current.provider)
+		if current := m.safeGetSelectedProvider(); current != nil {
+			m.providerStore.SetActive(current.ID)
+			// 写入 Claude settings.json
+			provider := m.providerStore.Get(current.ID)
+			alreadySet, err := config.WriteToClaudeSettings(provider)
 			m.updateProviderListItems()
 			if err != nil {
 				m.errMsg = "激活失败: " + err.Error()
 				// 5秒后清除错误消息
 				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-					return clearProviderMessageMsg{msgType: "err"}
+					return clearProviderMessageMsg{msgType: msgTypeErr}
 				})
 			} else if alreadySet {
-				m.tipMsg = current.provider.Name + " 配置已生效，无需更新"
+				m.tipMsg = current.Name + " 配置已生效，无需更新"
 				// 5秒后清除提示消息
 				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-					return clearProviderMessageMsg{msgType: "tip"}
+					return clearProviderMessageMsg{msgType: msgTypeTip}
 				})
 			} else {
-				m.tipMsg = "已激活 " + current.provider.Name
+				m.tipMsg = "已激活 " + current.Name
 				// 5秒后清除提示消息
 				return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-					return clearProviderMessageMsg{msgType: "tip"}
+					return clearProviderMessageMsg{msgType: msgTypeTip}
 				})
 			}
 		}
 	case "enter":
 		// 编辑选中配置
-		if len(m.providerList.Items()) > 0 {
+		if current := m.safeGetSelectedProvider(); current != nil {
 			m.state = StateProviderEdit
-			current := m.providerList.SelectedItem().(providerListItem)
-			m.editingProviderID = current.provider.ID
+			m.editingProviderID = current.ID
 			m.providerInputFocus = FocusProviderName
-			m.providerNameInput.SetValue(current.provider.Name)
+			m.providerNameInput.SetValue(current.Name)
 			m.providerNameInput.Focus()
-			m.providerBaseURLInput.SetValue(current.provider.BaseURL)
+			m.providerBaseURLInput.SetValue(current.BaseURL)
 			m.providerBaseURLInput.Blur()
-			m.providerAPIKeyInput.SetValue(current.provider.APIKey)
+			m.providerAPIKeyInput.SetValue(current.APIKey)
 			m.providerAPIKeyInput.Blur()
-			m.providerModelInput.SetValue(current.provider.Model)
+			m.providerModelInput.SetValue(current.Model)
 			m.providerModelInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
@@ -545,8 +534,10 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleProviderAddKeyMsg 处理新增配置按键
-func (m *Model) handleProviderAddKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+// handleProviderFormKeyMsg 处理配置表单按键（新增/编辑共用）
+func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	isEdit := m.editingProviderID != ""
+
 	switch msg.String() {
 	case "enter":
 		name := m.providerNameInput.Value()
@@ -568,58 +559,19 @@ func (m *Model) handleProviderAddKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.setProviderErrMsg("模型名称不能为空")
 		}
 
-		provider := models.ModelProvider{
-			ID:        models.GenerateProviderID(),
-			Name:      name,
-			BaseURL:   baseURL,
-			APIKey:    apiKey,
-			Model:     model,
-			CreatedAt: time.Now(),
+		if isEdit {
+			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model)
+		} else {
+			provider := models.ModelProvider{
+				ID:        models.GenerateProviderID(),
+				Name:      name,
+				BaseURL:   baseURL,
+				APIKey:    apiKey,
+				Model:     model,
+				CreatedAt: time.Now(),
+			}
+			m.providerStore.Add(provider)
 		}
-		m.providerStore.Add(provider)
-		m.updateProviderListItems()
-		m.state = StateProviderList
-		m.errMsg = ""
-		return m, nil
-	case "tab":
-		// 切换焦点
-		m.providerInputFocus = (m.providerInputFocus + 1) % FocusProviderCount
-		m.updateProviderFocus()
-	case "esc":
-		m.state = StateProviderList
-		m.errMsg = ""
-	case "ctrl+c", "ctrl+q":
-		return m, tea.Quit
-	}
-
-	// 更新当前焦点输入框
-	return m, m.updateProviderInput(msg)
-}
-
-// handleProviderEditKeyMsg 处理编辑配置按键
-func (m *Model) handleProviderEditKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "enter":
-		name := m.providerNameInput.Value()
-		baseURL := m.providerBaseURLInput.Value()
-		apiKey := m.providerAPIKeyInput.Value()
-		model := m.providerModelInput.Value()
-
-		// 验证
-		if name == "" {
-			return m.setProviderErrMsg("配置名称不能为空")
-		}
-		if baseURL == "" {
-			return m.setProviderErrMsg("Base URL不能为空")
-		}
-		if apiKey == "" {
-			return m.setProviderErrMsg("API Key不能为空")
-		}
-		if model == "" {
-			return m.setProviderErrMsg("模型名称不能为空")
-		}
-
-		m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model)
 		m.updateProviderListItems()
 		m.state = StateProviderList
 		m.errMsg = ""
@@ -643,9 +595,10 @@ func (m *Model) handleProviderEditKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleProviderDeleteKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "y", "enter":
-		current := m.providerList.SelectedItem().(providerListItem)
-		m.providerStore.Remove(current.provider.ID)
-		m.updateProviderListItems()
+		if current := m.safeGetSelectedProvider(); current != nil {
+			m.providerStore.Remove(current.ID)
+			m.updateProviderListItems()
+		}
 		m.state = StateProviderList
 	case "n", "esc":
 		m.state = StateProviderList
@@ -659,7 +612,7 @@ func (m *Model) handleProviderDeleteKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 func (m *Model) setProviderErrMsg(msg string) (tea.Model, tea.Cmd) {
 	m.errMsg = msg
 	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-		return clearProviderMessageMsg{msgType: "err"}
+		return clearProviderMessageMsg{msgType: msgTypeErr}
 	})
 }
 
@@ -667,7 +620,7 @@ func (m *Model) setProviderErrMsg(msg string) (tea.Model, tea.Cmd) {
 func (m *Model) setProviderTipMsg(msg string) (tea.Model, tea.Cmd) {
 	m.tipMsg = msg
 	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
-		return clearProviderMessageMsg{msgType: "tip"}
+		return clearProviderMessageMsg{msgType: msgTypeTip}
 	})
 }
 

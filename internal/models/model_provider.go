@@ -20,52 +20,61 @@ type ModelProvider struct {
 }
 
 type ModelProviderStore struct {
-	Providers []ModelProvider `json:"providers"`
-	ActiveID  string         `json:"active_id"` // 当前激活的配置ID
+	Providers []ModelProvider  `json:"providers"`
+	ActiveID  string           `json:"active_id"` // 当前激活的配置ID
+	index     map[string]int    `json:"-"`         // id -> index 映射，不持久化
 }
 
 func NewModelProviderStore() *ModelProviderStore {
 	return &ModelProviderStore{
 		Providers: make([]ModelProvider, 0),
+		index:     make(map[string]int),
+	}
+}
+
+// rebuildIndex 重建索引
+func (s *ModelProviderStore) rebuildIndex() {
+	s.index = make(map[string]int)
+	for i, p := range s.Providers {
+		s.index[p.ID] = i
 	}
 }
 
 // Add 添加新配置
 func (s *ModelProviderStore) Add(provider ModelProvider) {
 	s.Providers = append(s.Providers, provider)
+	s.index[provider.ID] = len(s.Providers) - 1
 }
 
 // Remove 删除配置
 func (s *ModelProviderStore) Remove(id string) {
-	for i, p := range s.Providers {
-		if p.ID == id {
-			s.Providers = append(s.Providers[:i], s.Providers[i+1:]...)
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	s.Providers = append(s.Providers[:idx], s.Providers[idx+1:]...)
+	s.rebuildIndex()
 }
 
 // Get 获取配置
 func (s *ModelProviderStore) Get(id string) *ModelProvider {
-	for i := range s.Providers {
-		if s.Providers[i].ID == id {
-			return &s.Providers[i]
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return nil
 	}
-	return nil
+	return &s.Providers[idx]
 }
 
 // Update 更新配置
 func (s *ModelProviderStore) Update(id string, name, baseURL, apiKey, model string) {
-	for i := range s.Providers {
-		if s.Providers[i].ID == id {
-			s.Providers[i].Name = name
-			s.Providers[i].BaseURL = baseURL
-			s.Providers[i].APIKey = apiKey
-			s.Providers[i].Model = model
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	s.Providers[idx].Name = name
+	s.Providers[idx].BaseURL = baseURL
+	s.Providers[idx].APIKey = apiKey
+	s.Providers[idx].Model = model
 }
 
 // SetActive 设置激活配置
@@ -75,13 +84,12 @@ func (s *ModelProviderStore) SetActive(id string) {
 		s.Providers[i].Active = false
 	}
 	// 激活指定配置
-	for i := range s.Providers {
-		if s.Providers[i].ID == id {
-			s.Providers[i].Active = true
-			s.ActiveID = id
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	s.Providers[idx].Active = true
+	s.ActiveID = id
 }
 
 // GetActive 获取当前激活的配置
@@ -118,7 +126,11 @@ func (s *ModelProviderStore) Load(path string) error {
 		}
 		return err
 	}
-	return json.Unmarshal(data, s)
+	if err := json.Unmarshal(data, s); err != nil {
+		return err
+	}
+	s.rebuildIndex()
+	return nil
 }
 
 func (s *ModelProviderStore) Save(path string) error {

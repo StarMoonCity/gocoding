@@ -293,18 +293,6 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 		countBadge,
 	)
 
-	// 选中时添加左侧高亮边框
-	if isSelected {
-		content = lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			lipgloss.NewStyle().
-				Foreground(PrimaryColor).
-				Width(1).
-				Render("│"),
-			content,
-		)
-	}
-
 	fmt.Fprintf(w, "%s", content)
 }
 
@@ -390,18 +378,6 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 		line,
 		secondLine,
 	)
-
-	// 选中时添加左侧高亮边框
-	if isSelected {
-		content = lipgloss.JoinHorizontal(
-			lipgloss.Left,
-			lipgloss.NewStyle().
-				Foreground(PrimaryColor).
-				Width(1).
-				Render("│"),
-			content,
-		)
-	}
 
 	fmt.Fprintf(w, "%s", content)
 }

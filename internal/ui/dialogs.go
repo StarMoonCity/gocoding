@@ -288,23 +288,24 @@ func (m *Model) viewProviderList() string {
 	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
+		tipDisplay = lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Background(lipgloss.Color("#0F1926")).
+			Padding(0, 1).
+			Render("ℹ " + m.tipMsg)
 	}
 
 	helpText := lipgloss.NewStyle().
 		Foreground(SecondaryText).
 		Align(lipgloss.Center).
+		Width(dialogWidth - 4).
 		Render(
-			lipgloss.JoinHorizontal(lipgloss.Left,
-				lipgloss.NewStyle().Foreground(MutedText).Render("│"),
-				" ",
-				HelpKeyStyle.Render("[↑↓]"), " 选择 ",
-				HelpKeyStyle.Render("[N]"), " 新增 ",
-				HelpKeyStyle.Render("[E]"), " 编辑 ",
-				HelpKeyStyle.Render("[D]"), " 删除 ",
-				HelpKeyStyle.Render("[A]"), " 激活 ",
-				HelpKeyStyle.Render("[Esc]"), " 退出",
-			),
+			HelpKeyStyle.Render("[↑↓]"), " 选择 ",
+			HelpKeyStyle.Render("[N]"), " 新增 ",
+			HelpKeyStyle.Render("[E]"), " 编辑 ",
+			HelpKeyStyle.Render("[D]"), " 删除 ",
+			HelpKeyStyle.Render("[A]"), " 激活 ",
+			HelpKeyStyle.Render("[Esc]"), " 退出",
 		)
 
 	dialog := lipgloss.NewStyle().

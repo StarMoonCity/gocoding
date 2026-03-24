@@ -52,53 +52,63 @@ func (p *Project) UpdateLastOpened() {
 }
 
 type ProjectStore struct {
-	Projects []Project `json:"projects"`
+	Projects []Project       `json:"projects"`
+	index    map[string]int  `json:"-"` // id -> index 映射，不持久化
 }
 
 func NewProjectStore() *ProjectStore {
 	return &ProjectStore{
 		Projects: make([]Project, 0),
+		index:    make(map[string]int),
+	}
+}
+
+// rebuildIndex 重建索引
+func (s *ProjectStore) rebuildIndex() {
+	s.index = make(map[string]int)
+	for i, p := range s.Projects {
+		s.index[p.ID] = i
 	}
 }
 
 func (s *ProjectStore) Add(project Project) {
 	s.Projects = append(s.Projects, project)
+	s.index[project.ID] = len(s.Projects) - 1
 }
 
 func (s *ProjectStore) Remove(id string) {
-	for i, p := range s.Projects {
-		if p.ID == id {
-			s.Projects = append(s.Projects[:i], s.Projects[i+1:]...)
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	// 从切片中删除
+	s.Projects = append(s.Projects[:idx], s.Projects[idx+1:]...)
+	// 重建索引（因为删除后索引会变化）
+	s.rebuildIndex()
 }
 
 func (s *ProjectStore) Get(id string) *Project {
-	for i := range s.Projects {
-		if s.Projects[i].ID == id {
-			return &s.Projects[i]
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return nil
 	}
-	return nil
+	return &s.Projects[idx]
 }
 
 func (s *ProjectStore) Update(alias string, id string) {
-	for i := range s.Projects {
-		if s.Projects[i].ID == id {
-			s.Projects[i].Alias = alias
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	s.Projects[idx].Alias = alias
 }
 
 func (s *ProjectStore) UpdateDescription(id string, description string) {
-	for i := range s.Projects {
-		if s.Projects[i].ID == id {
-			s.Projects[i].Description = description
-			return
-		}
+	idx, ok := s.index[id]
+	if !ok {
+		return
 	}
+	s.Projects[idx].Description = description
 }
 
 func (s *ProjectStore) GetByIndex(index int) *Project {
@@ -169,7 +179,11 @@ func (s *ProjectStore) Load(path string) error {
 		}
 		return err
 	}
-	return json.Unmarshal(data, s)
+	if err := json.Unmarshal(data, s); err != nil {
+		return err
+	}
+	s.rebuildIndex()
+	return nil
 }
 
 func (s *ProjectStore) Save(path string) error {

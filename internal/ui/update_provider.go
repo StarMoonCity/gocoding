@@ -172,9 +172,7 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if apiKey == "" {
 			return m.setProviderErrMsg("API Key不能为空")
 		}
-		if model == "" {
-			return m.setProviderErrMsg("主模型不能为空")
-		}
+		// 主模型允许为空
 
 		if isEdit {
 			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel)

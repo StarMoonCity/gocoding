@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"gocoding/internal/models"
 )
@@ -49,31 +48,6 @@ func ClaudeSettingsPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(homeDir, ".claude", "settings.json"), nil
-}
-
-// BackupClaudeSettings 备份 Claude settings.json，带时间戳
-func BackupClaudeSettings() (string, error) {
-	settingsPath, err := ClaudeSettingsPath()
-	if err != nil {
-		return "", err
-	}
-
-	// 读取原文件
-	data, err := os.ReadFile(settingsPath)
-	if err != nil {
-		return "", err
-	}
-
-	// 生成带时间戳的备份文件名
-	timestamp := time.Now().Format("20060102_150405")
-	backupPath := settingsPath + "_go_coding_bak_" + timestamp
-
-	// 写入备份
-	if err := os.WriteFile(backupPath, data, 0644); err != nil {
-		return "", err
-	}
-
-	return backupPath, nil
 }
 
 // IsProviderConfigMatch 检查当前 settings.json 是否与配置一致
@@ -150,13 +124,6 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 
 	// 更新 model 字段
 	settings["model"] = provider.Model
-
-	// 创建备份（带时间戳）
-	backupPath, err := BackupClaudeSettings()
-	if err != nil {
-		return false, err
-	}
-	_ = backupPath // 备份路径已记录
 
 	// 写回文件
 	output, err := json.MarshalIndent(settings, "", "  ")

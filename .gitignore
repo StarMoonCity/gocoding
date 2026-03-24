@@ -7,3 +7,9 @@ gocoding
 
 # OS
 .DS_Store
+
+# Claude
+.claude/
+
+# Local
+openspec/

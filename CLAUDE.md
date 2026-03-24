@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Gocoding is a TUI project management tool built with Go and Bubble Tea. It manages projects, opens IDEs, and configures AI model providers.
 
+**Data Storage**:
+- Projects: `~/.config/gocoding/projects.json`
+- Model Providers: `~/.config/gocoding/providers.json`
+
 ## Commands
 
 ```bash
@@ -15,23 +19,27 @@ go build ./cmd/gocoding/
 # Run the application
 go run ./cmd/gocoding/
 
-# Install to ~/go/bin (requires ~/go/bin in PATH)
-./install.sh
-
 # Run with provider config (skip to model provider list)
 go run ./cmd/gocoding/ -p
+
+# Install to ~/go/bin (requires ~/go/bin in PATH)
+./install.sh
 
 # Add dependencies
 go get github.com/charmbracelet/bubbletea@v1.1.0 github.com/charmbracelet/lipgloss@v0.13.0 github.com/charmbracelet/bubbles@v0.20.0 github.com/spf13/viper@v1.18.2
 
 # Tidy dependencies
 go mod tidy
+
+# Run tests
+go test ./...
+
+# Run single test
+go test -v ./internal/models/...
+
+# Lint (requires golangci-lint)
+golangci-lint run ./...
 ```
-
-## Data Storage
-
-- Projects: `~/.config/gocoding/projects.json`
-- Model Providers: `~/.config/gocoding/providers.json`
 
 ## Architecture
 
@@ -47,7 +55,8 @@ cmd/gocoding/main.go
 ```
 
 ### UI State Machine
-The `Model` in `internal/ui/model.go` uses a state machine pattern. Key states:
+
+The `Model` in `internal/ui/model.go` uses a state machine pattern:
 
 **Project Management:**
 - `StateList` - Main project list view
@@ -67,9 +76,9 @@ The `Model` in `internal/ui/model.go` uses a state machine pattern. Key states:
 
 ### Key Types
 
-- `Project` struct: ID, Path, Alias, Description, CreatedAt, LastOpened, OpenCount
+- `Project`: ID, Path, Alias, Description, CreatedAt, LastOpened, OpenCount
 - `ProjectStore`: CRUD operations, Search, SortByLastOpened
-- `ModelProvider` struct: ID, Name, BaseURL, APIKey, Model, Active
+- `ModelProvider`: ID, Name, BaseURL, APIKey, Model, Active
 - `ModelProviderStore`: Provider management with active provider tracking
 - `IDEExecutor` in `internal/commands/executor.go`: Opens projects in Claude/VSCode/OpenCode
 
@@ -81,6 +90,46 @@ The `Model` in `internal/ui/model.go` uses a state machine pattern. Key states:
 - `bubbles/textinput` - Form inputs
 - `bubbles/textarea` - Multi-line text (descriptions)
 - `bubbles/viewport` - Scrollable detail views
+
+## Code Style
+
+### Import Grouping
+
+Group imports in this order:
+1. Standard library
+2. External dependencies
+3. Internal packages (relative imports)
+
+### Error Handling
+
+- Always check errors explicitly: `if err != nil { ... }`
+- Return meaningful error messages with context (Chinese for user-facing errors)
+- Handle `os.IsNotExist(err)` specifically for file-not-found cases
+- Use `fmt.Errorf("context: %w", err)` for wrapping errors
+
+### JSON Fields
+
+Use JSON tags for all exported struct fields with snake_case keys:
+```go
+type Project struct {
+    ID          string    `json:"id"`
+    LastOpened  time.Time `json:"last_opened"`
+}
+```
+
+### Comments
+
+- Comment exported types, functions, and constants
+- Use Chinese comments for internal implementation details
+- Use English comments for exported/public APIs
+
+### Dependency Injection
+
+The codebase uses constructor injection:
+```go
+func NewJSONStore(store *models.ProjectStore) *JSONStore { ... }
+func NewModel(store *models.ProjectStore) *Model { ... }
+```
 
 ## Self-Diagnosing Workflow
 
@@ -96,3 +145,27 @@ go vet ./cmd/gocoding/ ./internal/...  # Fast syntax check
 go build ./cmd/gocoding/               # Full compilation
 go test ./...                         # Run tests
 ```
+
+## Development Workflow
+
+1. **Syntax checking**: Use `gopls` for Go syntax verification
+2. **Build before commit**: Always run `go build ./cmd/gocoding/` before committing
+3. **Incremental changes**: Make small, focused changes
+
+## LSP Support
+
+Use LSP features for code navigation and analysis:
+- `documentSymbol` - List all symbols in a file
+- `goToDefinition` - Jump to symbol definition
+- `findReferences` - Find symbol references
+- `hover` - Get symbol documentation
+- `workspaceSymbol` - Search symbols across the codebase
+- `incomingCalls` / `outgoingCalls` - Analyze call hierarchies
+
+Example: When exploring unfamiliar code, use `documentSymbol` to understand the structure, then `goToDefinition` to navigate to implementations.
+
+## Key Constraints
+
+- **NEVER** suppress type errors with `as any`, `@ts-ignore`, or similar
+- **NEVER** commit without explicit user request
+- **NEVER** leave code in broken state after failures

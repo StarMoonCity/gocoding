@@ -34,9 +34,25 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.providerAPIKeyInput.SetValue("")
 		m.providerAPIKeyInput.Blur()
 		m.providerModelInput.Reset()
-		m.providerModelInput.Placeholder = "模型名称 (如 MiniMax-M2.7-highspeed)"
+		m.providerModelInput.Placeholder = "主模型 (如 MiniMax-M2.7-highspeed)"
 		m.providerModelInput.SetValue("")
 		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Reset()
+		m.providerThinkingModelInput.Placeholder = "推理模型"
+		m.providerThinkingModelInput.SetValue("")
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Reset()
+		m.providerDefaultHaikuInput.Placeholder = "Haiku 默认模型"
+		m.providerDefaultHaikuInput.SetValue("")
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Reset()
+		m.providerDefaultSonnetInput.Placeholder = "Sonnet 默认模型"
+		m.providerDefaultSonnetInput.SetValue("")
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Reset()
+		m.providerDefaultOpusInput.Placeholder = "Opus 默认模型"
+		m.providerDefaultOpusInput.SetValue("")
+		m.providerDefaultOpusInput.Blur()
 		m.editingProviderID = ""
 		m.errMsg = ""
 		return m, textinput.Blink
@@ -54,6 +70,14 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerAPIKeyInput.Blur()
 			m.providerModelInput.SetValue(current.Model)
 			m.providerModelInput.Blur()
+			m.providerThinkingModelInput.SetValue(current.ThinkingModel)
+			m.providerThinkingModelInput.Blur()
+			m.providerDefaultHaikuInput.SetValue(current.DefaultHaikuModel)
+			m.providerDefaultHaikuInput.Blur()
+			m.providerDefaultSonnetInput.SetValue(current.DefaultSonnetModel)
+			m.providerDefaultSonnetInput.Blur()
+			m.providerDefaultOpusInput.SetValue(current.DefaultOpusModel)
+			m.providerDefaultOpusInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
 		}
@@ -104,6 +128,14 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerAPIKeyInput.Blur()
 			m.providerModelInput.SetValue(current.Model)
 			m.providerModelInput.Blur()
+			m.providerThinkingModelInput.SetValue(current.ThinkingModel)
+			m.providerThinkingModelInput.Blur()
+			m.providerDefaultHaikuInput.SetValue(current.DefaultHaikuModel)
+			m.providerDefaultHaikuInput.Blur()
+			m.providerDefaultSonnetInput.SetValue(current.DefaultSonnetModel)
+			m.providerDefaultSonnetInput.Blur()
+			m.providerDefaultOpusInput.SetValue(current.DefaultOpusModel)
+			m.providerDefaultOpusInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
 		}
@@ -125,6 +157,10 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		baseURL := m.providerBaseURLInput.Value()
 		apiKey := m.providerAPIKeyInput.Value()
 		model := m.providerModelInput.Value()
+		thinkingModel := m.providerThinkingModelInput.Value()
+		defaultHaikuModel := m.providerDefaultHaikuInput.Value()
+		defaultSonnetModel := m.providerDefaultSonnetInput.Value()
+		defaultOpusModel := m.providerDefaultOpusInput.Value()
 
 		// 验证
 		if name == "" {
@@ -137,19 +173,23 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.setProviderErrMsg("API Key不能为空")
 		}
 		if model == "" {
-			return m.setProviderErrMsg("模型名称不能为空")
+			return m.setProviderErrMsg("主模型不能为空")
 		}
 
 		if isEdit {
-			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model)
+			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel)
 		} else {
 			provider := models.ModelProvider{
-				ID:        models.GenerateProviderID(),
-				Name:      name,
-				BaseURL:   baseURL,
-				APIKey:    apiKey,
-				Model:     model,
-				CreatedAt: time.Now(),
+				ID:               models.GenerateProviderID(),
+				Name:             name,
+				BaseURL:          baseURL,
+				APIKey:           apiKey,
+				Model:            model,
+				ThinkingModel:    thinkingModel,
+				DefaultHaikuModel:  defaultHaikuModel,
+				DefaultSonnetModel: defaultSonnetModel,
+				DefaultOpusModel:   defaultOpusModel,
+				CreatedAt:         time.Now(),
 			}
 			m.providerStore.Add(provider)
 		}
@@ -213,21 +253,73 @@ func (m *Model) updateProviderFocus() {
 		m.providerBaseURLInput.Blur()
 		m.providerAPIKeyInput.Blur()
 		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
 	case FocusProviderBaseURL:
 		m.providerNameInput.Blur()
 		m.providerBaseURLInput.Focus()
 		m.providerAPIKeyInput.Blur()
 		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
 	case FocusProviderAPIKey:
 		m.providerNameInput.Blur()
 		m.providerBaseURLInput.Blur()
 		m.providerAPIKeyInput.Focus()
 		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
 	case FocusProviderModel:
 		m.providerNameInput.Blur()
 		m.providerBaseURLInput.Blur()
 		m.providerAPIKeyInput.Blur()
 		m.providerModelInput.Focus()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
+	case FocusProviderThinkingModel:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Focus()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
+	case FocusProviderDefaultHaiku:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Focus()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Blur()
+	case FocusProviderDefaultSonnet:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Focus()
+		m.providerDefaultOpusInput.Blur()
+	case FocusProviderDefaultOpus:
+		m.providerNameInput.Blur()
+		m.providerBaseURLInput.Blur()
+		m.providerAPIKeyInput.Blur()
+		m.providerModelInput.Blur()
+		m.providerThinkingModelInput.Blur()
+		m.providerDefaultHaikuInput.Blur()
+		m.providerDefaultSonnetInput.Blur()
+		m.providerDefaultOpusInput.Focus()
 	}
 }
 
@@ -243,6 +335,14 @@ func (m *Model) updateProviderInput(msg tea.Msg) tea.Cmd {
 		m.providerAPIKeyInput, cmd = m.providerAPIKeyInput.Update(msg)
 	case FocusProviderModel:
 		m.providerModelInput, cmd = m.providerModelInput.Update(msg)
+	case FocusProviderThinkingModel:
+		m.providerThinkingModelInput, cmd = m.providerThinkingModelInput.Update(msg)
+	case FocusProviderDefaultHaiku:
+		m.providerDefaultHaikuInput, cmd = m.providerDefaultHaikuInput.Update(msg)
+	case FocusProviderDefaultSonnet:
+		m.providerDefaultSonnetInput, cmd = m.providerDefaultSonnetInput.Update(msg)
+	case FocusProviderDefaultOpus:
+		m.providerDefaultOpusInput, cmd = m.providerDefaultOpusInput.Update(msg)
 	}
 	return cmd
 }

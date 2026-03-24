@@ -10,13 +10,17 @@ import (
 )
 
 type ModelProvider struct {
-	ID       string    `json:"id"`
-	Name     string    `json:"name"`      // 配置名称，如 "MiniMax", "Claude"
-	BaseURL  string    `json:"base_url"`  // API Base URL
-	APIKey   string    `json:"api_key"`   // API Key
-	Model    string    `json:"model"`     // 默认模型名
-	Active   bool      `json:"active"`    // 是否激活
-	CreatedAt time.Time `json:"created_at"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`       // 配置名称，如 "MiniMax", "Claude"
+	BaseURL         string    `json:"base_url"`   // API Base URL
+	APIKey          string    `json:"api_key"`    // API Key
+	Model           string    `json:"model"`      // 默认模型名
+	ThinkingModel   string    `json:"thinking_model"`    // 推理模型
+	DefaultHaikuModel  string `json:"default_haiku_model"`  // Haiku 默认模型
+	DefaultSonnetModel string `json:"default_sonnet_model"` // Sonnet 默认模型
+	DefaultOpusModel   string `json:"default_opus_model"`  // Opus 默认模型
+	Active          bool      `json:"active"`     // 是否激活
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type ModelProviderStore struct {
@@ -66,7 +70,7 @@ func (s *ModelProviderStore) Get(id string) *ModelProvider {
 }
 
 // Update 更新配置
-func (s *ModelProviderStore) Update(id string, name, baseURL, apiKey, model string) {
+func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel string) {
 	idx, ok := s.index[id]
 	if !ok {
 		return
@@ -75,6 +79,10 @@ func (s *ModelProviderStore) Update(id string, name, baseURL, apiKey, model stri
 	s.Providers[idx].BaseURL = baseURL
 	s.Providers[idx].APIKey = apiKey
 	s.Providers[idx].Model = model
+	s.Providers[idx].ThinkingModel = thinkingModel
+	s.Providers[idx].DefaultHaikuModel = defaultHaikuModel
+	s.Providers[idx].DefaultSonnetModel = defaultSonnetModel
+	s.Providers[idx].DefaultOpusModel = defaultOpusModel
 }
 
 // SetActive 设置激活配置

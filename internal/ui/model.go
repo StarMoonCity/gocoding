@@ -41,12 +41,16 @@ type Model struct {
 	showDetails    bool
 	searchQuery    string // 搜索查询字符串
 	// Provider 配置输入
-	providerInputFocus      ProviderInputFocus
-	providerNameInput      textinput.Model
-	providerBaseURLInput   textinput.Model
-	providerAPIKeyInput    textinput.Model
-	providerModelInput     textinput.Model
-	editingProviderID      string // 编辑中的配置ID，为空表示新增
+	providerInputFocus          ProviderInputFocus
+	providerNameInput           textinput.Model
+	providerBaseURLInput        textinput.Model
+	providerAPIKeyInput         textinput.Model
+	providerModelInput          textinput.Model
+	providerThinkingModelInput  textinput.Model // 推理模型
+	providerDefaultHaikuInput   textinput.Model // Haiku 默认模型
+	providerDefaultSonnetInput  textinput.Model // Sonnet 默认模型
+	providerDefaultOpusInput    textinput.Model // Opus 默认模型
+	editingProviderID           string // 编辑中的配置ID，为空表示新增
 	itemIndexCache        map[string]int // listItem.FilterValue -> index 缓存
 }
 
@@ -72,6 +76,10 @@ const (
 	FocusProviderBaseURL
 	FocusProviderAPIKey
 	FocusProviderModel
+	FocusProviderThinkingModel
+	FocusProviderDefaultHaiku
+	FocusProviderDefaultSonnet
+	FocusProviderDefaultOpus
 	FocusProviderCount // 焦点数量
 )
 
@@ -240,7 +248,19 @@ func (m *Model) initProviderInputs() {
 	m.providerAPIKeyInput.Placeholder = "API Key"
 
 	m.providerModelInput = textinput.New()
-	m.providerModelInput.Placeholder = "模型名称 (如 MiniMax-M2.7-highspeed)"
+	m.providerModelInput.Placeholder = "主模型 (如 MiniMax-M2.7-highspeed)"
+
+	m.providerThinkingModelInput = textinput.New()
+	m.providerThinkingModelInput.Placeholder = "推理模型 (如 MiniMax-M2.7-highspeed)"
+
+	m.providerDefaultHaikuInput = textinput.New()
+	m.providerDefaultHaikuInput.Placeholder = "Haiku 默认模型"
+
+	m.providerDefaultSonnetInput = textinput.New()
+	m.providerDefaultSonnetInput.Placeholder = "Sonnet 默认模型"
+
+	m.providerDefaultOpusInput = textinput.New()
+	m.providerDefaultOpusInput.Placeholder = "Opus 默认模型"
 }
 
 // initProviderList 初始化模型配置列表

@@ -356,6 +356,10 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 	baseURLStyle := inputStyle
 	apiKeyStyle := inputStyle
 	modelStyle := inputStyle
+	thinkingModelStyle := inputStyle
+	defaultHaikuStyle := inputStyle
+	defaultSonnetStyle := inputStyle
+	defaultOpusStyle := inputStyle
 
 	if m.providerInputFocus == FocusProviderName {
 		nameStyle = nameStyle.BorderForeground(PrimaryColor)
@@ -365,6 +369,14 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		apiKeyStyle = apiKeyStyle.BorderForeground(PrimaryColor)
 	} else if m.providerInputFocus == FocusProviderModel {
 		modelStyle = modelStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderThinkingModel {
+		thinkingModelStyle = thinkingModelStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderDefaultHaiku {
+		defaultHaikuStyle = defaultHaikuStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderDefaultSonnet {
+		defaultSonnetStyle = defaultSonnetStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderDefaultOpus {
+		defaultOpusStyle = defaultOpusStyle.BorderForeground(PrimaryColor)
 	}
 
 	// 错误消息
@@ -402,8 +414,20 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 					lipgloss.NewStyle().Foreground(SecondaryText).Render("API Key"),
 					apiKeyStyle.Render(m.providerAPIKeyInput.View()),
 					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("模型名称"),
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("主模型"),
 					modelStyle.Render(m.providerModelInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("推理模型"),
+					thinkingModelStyle.Render(m.providerThinkingModelInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("Haiku 默认模型"),
+					defaultHaikuStyle.Render(m.providerDefaultHaikuInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("Sonnet 默认模型"),
+					defaultSonnetStyle.Render(m.providerDefaultSonnetInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("Opus 默认模型"),
+					defaultOpusStyle.Render(m.providerDefaultOpusInput.View()),
 				),
 				tipDisplay,
 				errDisplay,

@@ -72,6 +72,34 @@ func IsProviderConfigMatch(provider *models.ModelProvider, settings map[string]i
 		return false
 	}
 
+	// 检查推理模型
+	if provider.ThinkingModel != "" {
+		if reasoningModel, ok := env["ANTHROPIC_REASONING_MODEL"].(string); !ok || reasoningModel != provider.ThinkingModel {
+			return false
+		}
+	}
+
+	// 检查 Haiku 默认模型
+	if provider.DefaultHaikuModel != "" {
+		if haikuModel, ok := env["ANTHROPIC_DEFAULT_HAIKU_MODEL"].(string); !ok || haikuModel != provider.DefaultHaikuModel {
+			return false
+		}
+	}
+
+	// 检查 Sonnet 默认模型
+	if provider.DefaultSonnetModel != "" {
+		if sonnetModel, ok := env["ANTHROPIC_DEFAULT_SONNET_MODEL"].(string); !ok || sonnetModel != provider.DefaultSonnetModel {
+			return false
+		}
+	}
+
+	// 检查 Opus 默认模型
+	if provider.DefaultOpusModel != "" {
+		if opusModel, ok := env["ANTHROPIC_DEFAULT_OPUS_MODEL"].(string); !ok || opusModel != provider.DefaultOpusModel {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -119,6 +147,26 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 	}
 	// 也更新 ANTHROPIC_MODEL
 	env["ANTHROPIC_MODEL"] = provider.Model
+
+	// 更新推理模型
+	if provider.ThinkingModel != "" {
+		env["ANTHROPIC_REASONING_MODEL"] = provider.ThinkingModel
+	}
+
+	// 更新 Haiku 默认模型
+	if provider.DefaultHaikuModel != "" {
+		env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = provider.DefaultHaikuModel
+	}
+
+	// 更新 Sonnet 默认模型
+	if provider.DefaultSonnetModel != "" {
+		env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = provider.DefaultSonnetModel
+	}
+
+	// 更新 Opus 默认模型
+	if provider.DefaultOpusModel != "" {
+		env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = provider.DefaultOpusModel
+	}
 
 	settings["env"] = env
 

@@ -47,6 +47,7 @@ type Model struct {
 	providerAPIKeyInput    textinput.Model
 	providerModelInput     textinput.Model
 	editingProviderID      string // 编辑中的配置ID，为空表示新增
+	itemIndexCache        map[string]int // listItem.FilterValue -> index 缓存
 }
 
 type LayoutMode int
@@ -271,7 +272,7 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 	// 名称
 	nameStyle := lipgloss.NewStyle().Bold(true)
 	if isSelected {
-		nameStyle = nameStyle.Foreground(AccentColor)
+		nameStyle = nameStyle.Foreground(PrimaryColor)
 	} else {
 		nameStyle = nameStyle.Foreground(Foreground)
 	}
@@ -284,15 +285,27 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 		MarginLeft(1).
 		Render(fmt.Sprintf("×%d", proj.project.OpenCount))
 
-	// 组合第一行
-	firstLine := lipgloss.JoinHorizontal(
+	// 组合内容
+	content := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		selectorStyle.Render(selector),
 		nameStyle.Render(proj.project.Alias),
 		countBadge,
 	)
 
-	fmt.Fprintf(w, "%s", firstLine)
+	// 选中时添加左侧高亮边框
+	if isSelected {
+		content = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			lipgloss.NewStyle().
+				Foreground(PrimaryColor).
+				Width(1).
+				Render("│"),
+			content,
+		)
+	}
+
+	fmt.Fprintf(w, "%s", content)
 }
 
 // providerListDelegate 自定义列表项渲染
@@ -335,12 +348,12 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 			Render("[激活]")
 	}
 
-	// 名称样式 - 选中时高亮
+	// 名称样式 - 选中时使用主色高亮
 	nameStyle := lipgloss.NewStyle().Bold(true)
 	if isSelected {
-		nameStyle = nameStyle.Foreground(AccentColor)
-	} else {
 		nameStyle = nameStyle.Foreground(PrimaryColor)
+	} else {
+		nameStyle = nameStyle.Foreground(Foreground)
 	}
 
 	// URL 和模型样式
@@ -348,8 +361,10 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 
 	// 选中标记
 	selector := "  "
+	selectorStyle := lipgloss.NewStyle().Foreground(MutedText)
 	if isSelected {
 		selector = "▸ "
+		selectorStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
 	}
 
 	// 构建显示内容
@@ -357,13 +372,13 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 	if provider.Active {
 		line = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			selector,
-			nameStyle.Width(18).Render(provider.Name),
+			selectorStyle.Render(selector),
+			nameStyle.Width(16).Render(provider.Name),
 			"  ",
 			activeTag,
 		)
 	} else {
-		line = selector + nameStyle.Width(18).Render(provider.Name)
+		line = selectorStyle.Render(selector) + nameStyle.Width(16).Render(provider.Name)
 	}
 
 	// 第二行：URL 和模型
@@ -375,6 +390,18 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, width int, item 
 		line,
 		secondLine,
 	)
+
+	// 选中时添加左侧高亮边框
+	if isSelected {
+		content = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			lipgloss.NewStyle().
+				Foreground(PrimaryColor).
+				Width(1).
+				Render("│"),
+			content,
+		)
+	}
 
 	fmt.Fprintf(w, "%s", content)
 }
@@ -396,6 +423,53 @@ func (m *Model) updateProviderListItems() {
 		items[i] = providerListItem{provider: p}
 	}
 	m.providerList.SetItems(items)
+}
+
+// syncListItems 同步项目列表项并重建索引缓存
+func (m *Model) syncListItems() {
+	items := make([]list.Item, len(m.store.Projects))
+	for i, p := range m.store.Projects {
+		items[i] = listItem{project: p}
+	}
+	m.list.SetItems(items)
+	// 重建索引缓存
+	m.itemIndexCache = make(map[string]int)
+	for i, item := range items {
+		li := item.(listItem)
+		m.itemIndexCache[li.FilterValue()] = i
+	}
+}
+
+// safeGetSelectedProject 安全获取选中的项目
+func (m *Model) safeGetSelectedProject() *models.Project {
+	if len(m.list.Items()) == 0 {
+		return nil
+	}
+	item := m.list.SelectedItem()
+	if item == nil {
+		return nil
+	}
+	p, ok := item.(listItem)
+	if !ok {
+		return nil
+	}
+	return &p.project
+}
+
+// safeGetSelectedProvider 安全获取选中的提供商
+func (m *Model) safeGetSelectedProvider() *models.ModelProvider {
+	if len(m.providerList.Items()) == 0 {
+		return nil
+	}
+	item := m.providerList.SelectedItem()
+	if item == nil {
+		return nil
+	}
+	p, ok := item.(providerListItem)
+	if !ok {
+		return nil
+	}
+	return &p.provider
 }
 
 // SetState 设置应用状态

@@ -11,14 +11,14 @@ func (m *Model) viewAddProject() string {
 
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
-		BorderForeground(PrimaryColor).
+		BorderForeground(PrimaryDim).
 		Width(dialogWidth-6).
 		Padding(0, 1)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
@@ -80,8 +80,11 @@ func (m *Model) viewRenameProject() string {
 }
 
 func (m *Model) viewDeleteConfirm() string {
-	current := m.list.SelectedItem().(listItem)
-	message := fmt.Sprintf("确认删除项目 '%s' ？", current.project.Alias)
+	current := m.safeGetSelectedProject()
+	if current == nil {
+		return ""
+	}
+	message := fmt.Sprintf("确认删除项目 '%s' ？", current.Alias)
 
 	dialogWidth := min(50, m.width-10)
 
@@ -145,7 +148,7 @@ func (m *Model) viewIDEMenu() string {
 				Foreground(PrimaryColor).
 				Render("▸ ")
 			nameStyle = lipgloss.NewStyle().
-				Foreground(AccentColor).
+				Foreground(PrimaryColor).
 				Bold(true)
 		} else {
 			prefix = "  "
@@ -343,24 +346,24 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
-		BorderForeground(PrimaryColor).
+		BorderForeground(PrimaryDim).
 		Width(dialogWidth - 10).
 		Padding(0, 1)
 
-	// 当前焦点的输入框高亮
+	// 当前焦点的输入框高亮 - 聚焦时使用主色
 	nameStyle := inputStyle
 	baseURLStyle := inputStyle
 	apiKeyStyle := inputStyle
 	modelStyle := inputStyle
 
 	if m.providerInputFocus == FocusProviderName {
-		nameStyle = nameStyle.BorderForeground(AccentColor)
+		nameStyle = nameStyle.BorderForeground(PrimaryColor)
 	} else if m.providerInputFocus == FocusProviderBaseURL {
-		baseURLStyle = baseURLStyle.BorderForeground(AccentColor)
+		baseURLStyle = baseURLStyle.BorderForeground(PrimaryColor)
 	} else if m.providerInputFocus == FocusProviderAPIKey {
-		apiKeyStyle = apiKeyStyle.BorderForeground(AccentColor)
+		apiKeyStyle = apiKeyStyle.BorderForeground(PrimaryColor)
 	} else if m.providerInputFocus == FocusProviderModel {
-		modelStyle = modelStyle.BorderForeground(AccentColor)
+		modelStyle = modelStyle.BorderForeground(PrimaryColor)
 	}
 
 	// 错误消息
@@ -420,8 +423,11 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 
 // viewProviderDelete 确认删除配置
 func (m *Model) viewProviderDelete() string {
-	current := m.providerList.SelectedItem().(providerListItem)
-	message := fmt.Sprintf("确认删除配置 '%s' ？", current.provider.Name)
+	current := m.safeGetSelectedProvider()
+	if current == nil {
+		return ""
+	}
+	message := fmt.Sprintf("确认删除配置 '%s' ？", current.Name)
 
 	dialogWidth := min(50, m.width-10)
 

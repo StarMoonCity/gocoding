@@ -4,31 +4,32 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// 暗色主题色彩系统
+// 暗色主题色彩系统 - 统一单色调风格
 var (
 	// 背景层次
 	BackgroundDeep   = lipgloss.Color("#0F1419") // 最深背景
 	Background       = lipgloss.Color("#1A2332") // 主背景
-	BackgroundLight  = lipgloss.Color("#242D3D") // 表面/卡片背景
+	BackgroundLight  = lipgloss.Color("#2D3A4F") // 表面/卡片背景（与选中背景统一）
+	BackgroundHover  = lipgloss.Color("#363F52") // 悬停状态
 
-	// 主色调
-	PrimaryColor   = lipgloss.Color("#00D4FF")   // 青色主色
-	PrimaryDim     = lipgloss.Color("#0099CC")   // 次级主色
-	AccentColor    = lipgloss.Color("#FFD700")   // 金色强调（选中/高亮）
+	// 主色调 - 统一使用青色系
+	PrimaryColor     = lipgloss.Color("#00D4FF")   // 青色主色
+	PrimaryDim       = lipgloss.Color("#0099CC")   // 次级主色
+	PrimaryDark      = lipgloss.Color("#006B8F")   // 深色变体
 
-	// 状态色
-	SuccessColor   = lipgloss.Color("#22C55E")
-	WarningColor   = lipgloss.Color("#F59E0B")
-	ErrorColor     = lipgloss.Color("#EF4444")
+	// 状态色 - 使用同一色系
+	SuccessColor     = lipgloss.Color("#10B981")   // 绿色（同一色调）
+	WarningColor     = lipgloss.Color("#F59E0B")   // 保留警告色
+	ErrorColor       = lipgloss.Color("#EF4444")   // 保留错误色
 
 	// 文字色
-	Foreground     = lipgloss.Color("#F8FAFC")   // 主文字
-	SecondaryText  = lipgloss.Color("#94A3B8")   // 次级文字
-	MutedText      = lipgloss.Color("#64748B")   // 淡化文字
+	Foreground       = lipgloss.Color("#F8FAFC")   // 主文字
+	SecondaryText    = lipgloss.Color("#94A3B8")   // 次级文字
+	MutedText        = lipgloss.Color("#64748B")   // 淡化文字
 
-	// 选中状态
-	SelectedBg     = lipgloss.Color("#2D3A4F")
-	SelectedBorder = lipgloss.Color("#00D4FF")
+	// 选中状态 - 使用主色调作为唯一强调
+	SelectedBg       = lipgloss.Color("#1E3A5F")   // 选中背景（深青色）
+	SelectedBorder   = lipgloss.Color("#00D4FF")   // 选中边框
 )
 
 // 通用样式定义
@@ -45,15 +46,15 @@ var (
 			Background(Background).
 			Foreground(Foreground).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(PrimaryColor).
+			BorderForeground(PrimaryDim).
 			Padding(1, 2)
 
-	// 选中项样式
+	// 选中项样式 - 统一使用主色调
 	SelectedItemStyle = lipgloss.NewStyle().
 				Foreground(Foreground).
 				Background(SelectedBg).
 				BorderLeft(true).
-				BorderLeftForeground(SelectedBorder).
+				BorderLeftForeground(PrimaryColor).
 				Padding(0, 1)
 
 	// 普通项样式
@@ -72,7 +73,7 @@ var (
 			Foreground(SecondaryText).
 			Background(Background)
 
-	// IDE选中样式
+	// IDE选中样式 - 使用成功色
 	IDESelectedStyle = lipgloss.NewStyle().
 			Foreground(Background).
 			Background(SuccessColor).
@@ -103,7 +104,7 @@ var (
 			Padding(0, 1).
 			MarginLeft(1)
 
-	// 焦点输入框样式（左侧高亮边框）
+	// 焦点输入框样式（左侧高亮边框）- 使用主色调
 	FocusedInputBorder = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), false, false, false, true).
 				BorderForeground(PrimaryColor)
@@ -158,6 +159,6 @@ var SuccessBoxStyle = lipgloss.NewStyle().
 
 // HelpKeyStyle 快捷键样式
 var HelpKeyStyle = lipgloss.NewStyle().
-			Foreground(AccentColor).
+			Foreground(PrimaryColor).
 			Background(Background).
 			Bold(true)

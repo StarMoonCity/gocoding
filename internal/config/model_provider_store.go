@@ -67,35 +67,54 @@ func IsProviderConfigMatch(provider *models.ModelProvider, settings map[string]i
 		return false
 	}
 
-	// 检查 model 字段
-	if model, ok := settings["model"].(string); !ok || model != provider.Model {
-		return false
+	// 检查主模型（允许为空）
+	if provider.Model != "" {
+		if model, ok := settings["model"].(string); !ok || model != provider.Model {
+			return false
+		}
 	}
 
-	// 检查推理模型
+	// 检查推理模型（允许为空）
 	if provider.ThinkingModel != "" {
 		if reasoningModel, ok := env["ANTHROPIC_REASONING_MODEL"].(string); !ok || reasoningModel != provider.ThinkingModel {
 			return false
 		}
+	} else {
+		// 为空时，settings 中也不应存在该字段
+		if _, exists := env["ANTHROPIC_REASONING_MODEL"]; exists {
+			return false
+		}
 	}
 
-	// 检查 Haiku 默认模型
+	// 检查 Haiku 默认模型（允许为空）
 	if provider.DefaultHaikuModel != "" {
 		if haikuModel, ok := env["ANTHROPIC_DEFAULT_HAIKU_MODEL"].(string); !ok || haikuModel != provider.DefaultHaikuModel {
 			return false
 		}
-	}
-
-	// 检查 Sonnet 默认模型
-	if provider.DefaultSonnetModel != "" {
-		if sonnetModel, ok := env["ANTHROPIC_DEFAULT_SONNET_MODEL"].(string); !ok || sonnetModel != provider.DefaultSonnetModel {
+	} else {
+		if _, exists := env["ANTHROPIC_DEFAULT_HAIKU_MODEL"]; exists {
 			return false
 		}
 	}
 
-	// 检查 Opus 默认模型
+	// 检查 Sonnet 默认模型（允许为空）
+	if provider.DefaultSonnetModel != "" {
+		if sonnetModel, ok := env["ANTHROPIC_DEFAULT_SONNET_MODEL"].(string); !ok || sonnetModel != provider.DefaultSonnetModel {
+			return false
+		}
+	} else {
+		if _, exists := env["ANTHROPIC_DEFAULT_SONNET_MODEL"]; exists {
+			return false
+		}
+	}
+
+	// 检查 Opus 默认模型（允许为空）
 	if provider.DefaultOpusModel != "" {
 		if opusModel, ok := env["ANTHROPIC_DEFAULT_OPUS_MODEL"].(string); !ok || opusModel != provider.DefaultOpusModel {
+			return false
+		}
+	} else {
+		if _, exists := env["ANTHROPIC_DEFAULT_OPUS_MODEL"]; exists {
 			return false
 		}
 	}
@@ -139,39 +158,54 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 	env["ANTHROPIC_BASE_URL"] = provider.BaseURL
 	env["ANTHROPIC_AUTH_TOKEN"] = provider.APIKey
 
-	// 更新所有 ANTHROPIC_*MODEL 结尾的键
-	for k := range env {
-		if strings.HasPrefix(k, "ANTHROPIC_") && strings.HasSuffix(k, "MODEL") {
-			env[k] = provider.Model
-		}
+	// 主模型 - 对应 ANTHROPIC_MODEL
+	if provider.Model != "" {
+		env["ANTHROPIC_MODEL"] = provider.Model
+	} else {
+		delete(env, "ANTHROPIC_MODEL")
 	}
-	// 也更新 ANTHROPIC_MODEL
-	env["ANTHROPIC_MODEL"] = provider.Model
 
-	// 更新推理模型
+	// 推理模型 - 为空时移除
 	if provider.ThinkingModel != "" {
 		env["ANTHROPIC_REASONING_MODEL"] = provider.ThinkingModel
+	} else {
+		delete(env, "ANTHROPIC_REASONING_MODEL")
 	}
 
-	// 更新 Haiku 默认模型
+	// Haiku 默认模型 - 为空时移除
 	if provider.DefaultHaikuModel != "" {
 		env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = provider.DefaultHaikuModel
+	} else {
+		delete(env, "ANTHROPIC_DEFAULT_HAIKU_MODEL")
 	}
 
-	// 更新 Sonnet 默认模型
+	// Sonnet 默认模型 - 为空时移除
 	if provider.DefaultSonnetModel != "" {
 		env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = provider.DefaultSonnetModel
+	} else {
+		delete(env, "ANTHROPIC_DEFAULT_SONNET_MODEL")
 	}
 
-	// 更新 Opus 默认模型
+	// Opus 默认模型 - 为空时移除
 	if provider.DefaultOpusModel != "" {
 		env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = provider.DefaultOpusModel
+	} else {
+		delete(env, "ANTHROPIC_DEFAULT_OPUS_MODEL")
+	}
+
+	// 清理其他 ANTHROPIC_*MODEL 结尾的键（如果为空）
+	for k := range env {
+		if strings.HasPrefix(k, "ANTHROPIC_") && strings.HasSuffix(k, "_MODEL") && env[k] == "" {
+			delete(env, k)
+		}
 	}
 
 	settings["env"] = env
 
-	// 更新 model 字段
-	settings["model"] = provider.Model
+	// 更新 model 字段（主模型为空时使用默认）
+	if provider.Model != "" {
+		settings["model"] = provider.Model
+	}
 
 	// 写回文件
 	output, err := json.MarshalIndent(settings, "", "  ")

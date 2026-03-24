@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -267,11 +266,8 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 	}
 }
 
-// renderContent 渲染项目列表内容（支持单/双列）
+// renderContent 渲染项目列表内容
 func (m *Model) renderContent(config LayoutConfig) string {
-	if m.layoutMode == LayoutDouble && len(m.list.Items()) > 0 {
-		return m.renderDoubleColumn(config)
-	}
 	return m.renderSingleColumn(config)
 }
 
@@ -281,45 +277,6 @@ func (m *Model) renderSingleColumn(config LayoutConfig) string {
 		Width(m.width - config.paddingX*2).
 		Align(lipgloss.Center).
 		Render(m.list.View())
-}
-
-// renderDoubleColumn 双列布局
-func (m *Model) renderDoubleColumn(config LayoutConfig) string {
-	items := m.list.Items()
-	itemCount := len(items)
-	halfCount := (itemCount + 1) / 2
-
-	var leftItems, rightItems []list.Item
-	for i, item := range items {
-		if i < halfCount {
-			leftItems = append(leftItems, item)
-		} else {
-			rightItems = append(rightItems, item)
-		}
-	}
-
-	// 创建左右两个列表
-	delegate := list.NewDefaultDelegate()
-	delegate.SetSpacing(0)
-
-	leftList := list.New(leftItems, delegate, config.listWidth, config.listHeight)
-	rightList := list.New(rightItems, delegate, config.listWidth, config.listHeight)
-
-	leftView := lipgloss.NewStyle().
-		Width(config.listWidth).
-		Render(leftList.View())
-
-	rightView := lipgloss.NewStyle().
-		Width(config.listWidth).
-		Render(rightList.View())
-
-	// 使用列间隙连接
-	return lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		leftView,
-		lipgloss.NewStyle().Width(config.columnGap).Render(""),
-		rightView,
-	)
 }
 
 // viewSearch 搜索视图

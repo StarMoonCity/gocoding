@@ -25,7 +25,7 @@ func (m *Model) SetSize(width, height int) {
 
 	// 计算布局配置
 	config := m.calculateLayout(width, height)
-	m.layoutMode = m.determineLayoutMode(width)
+	m.layoutMode = LayoutSingle
 
 	m.list.SetSize(config.listWidth, config.listHeight)
 
@@ -82,9 +82,4 @@ func (m *Model) calculateLayout(width, height int) LayoutConfig {
 	config.listHeight = max(minHeight, maxHeight)
 
 	return config
-}
-
-func (m *Model) determineLayoutMode(width int) LayoutMode {
-	// 始终使用单列布局
-	return LayoutSingle
 }

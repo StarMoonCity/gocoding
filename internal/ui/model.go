@@ -54,7 +54,6 @@ type LayoutMode int
 
 const (
 	LayoutSingle LayoutMode = iota // 单列布局
-	LayoutDouble                   // 双列布局
 )
 
 // InputFocus 输入框焦点状态
@@ -146,6 +145,24 @@ func (i listItem) Description() string {
 
 func (i listItem) FilterValue() string { return i.project.Alias }
 
+// newListItems converts a slice of projects to list items
+func newListItems(projects []models.Project) []list.Item {
+	items := make([]list.Item, len(projects))
+	for i, p := range projects {
+		items[i] = listItem{project: p}
+	}
+	return items
+}
+
+// newProviderListItems converts a slice of providers to list items
+func newProviderListItems(providers []models.ModelProvider) []list.Item {
+	items := make([]list.Item, len(providers))
+	for i, p := range providers {
+		items[i] = providerListItem{provider: p}
+	}
+	return items
+}
+
 func NewModel(store *models.ProjectStore) *Model {
 	ideExec := commands.NewIDEExecutor()
 	m := &Model{
@@ -155,10 +172,7 @@ func NewModel(store *models.ProjectStore) *Model {
 		searchQuery:  "",
 	}
 
-	items := make([]list.Item, len(store.Projects))
-	for i, p := range store.Projects {
-		items[i] = listItem{project: p}
-	}
+	items := newListItems(store.Projects)
 
 	delegate := projectListDelegate{}
 
@@ -251,15 +265,7 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 		return
 	}
 
-	selectedIndex := m.Index()
-	itemIndex := -1
-	for i, it := range m.Items() {
-		if it.FilterValue() == item.FilterValue() {
-			itemIndex = i
-			break
-		}
-	}
-	isSelected := itemIndex == selectedIndex
+	isSelected := item == m.SelectedItem()
 
 	// 选中标记
 	selector := "  "
@@ -394,26 +400,12 @@ func (m *Model) updateProviderListItems() {
 	if m.providerStore == nil {
 		return
 	}
-	items := make([]list.Item, len(m.providerStore.Providers))
-	for i, p := range m.providerStore.Providers {
-		items[i] = providerListItem{provider: p}
-	}
-	m.providerList.SetItems(items)
+	m.providerList.SetItems(newProviderListItems(m.providerStore.Providers))
 }
 
-// syncListItems 同步项目列表项并重建索引缓存
+// syncListItems 同步项目列表项
 func (m *Model) syncListItems() {
-	items := make([]list.Item, len(m.store.Projects))
-	for i, p := range m.store.Projects {
-		items[i] = listItem{project: p}
-	}
-	m.list.SetItems(items)
-	// 重建索引缓存
-	m.itemIndexCache = make(map[string]int)
-	for i, item := range items {
-		li := item.(listItem)
-		m.itemIndexCache[li.FilterValue()] = i
-	}
+	m.list.SetItems(newListItems(m.store.Projects))
 }
 
 // safeGetSelectedProject 安全获取选中的项目

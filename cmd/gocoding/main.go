@@ -43,9 +43,13 @@ func main() {
 
 	// 解析命令行标志
 	providerMode := flag.Bool("p", false, "直接打开模型配置界面")
+	debugMode := flag.Bool("d", false, "开启调试模式")
 	flag.Parse()
 	if *providerMode {
 		m.SetState(ui.StateProviderList)
+	}
+	if *debugMode {
+		m.SetDebugMode(true)
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())

@@ -51,32 +51,50 @@ func (m *Model) updateViewport() {
 }
 
 func (m *Model) View() string {
+	debugHeight := m.debugPanelHeight()
+
+	// 渲染主内容
+	var content string
 	switch m.state {
 	case StateAddProject:
-		return m.viewAddProject()
+		content = m.viewAddProject()
 	case StateRenameProject:
-		return m.viewRenameProject()
+		content = m.viewRenameProject()
 	case StateDeleteConfirm:
-		return m.viewDeleteConfirm()
+		content = m.viewDeleteConfirm()
 	case StateIDEMenu:
-		return m.viewIDEMenu()
+		content = m.viewIDEMenu()
 	case StateViewDetail:
-		return m.viewViewDetail()
+		content = m.viewViewDetail()
 	case StateEditDescription:
-		return m.viewEditDescription()
+		content = m.viewEditDescription()
 	case StateSearch:
-		return m.viewSearch()
+		content = m.viewSearch()
 	case StateProviderList:
-		return m.viewProviderList()
+		content = m.viewProviderList()
 	case StateProviderAdd:
-		return m.viewProviderForm(false)
+		content = m.viewProviderForm(false)
 	case StateProviderEdit:
-		return m.viewProviderForm(true)
+		content = m.viewProviderForm(true)
 	case StateProviderDelete:
-		return m.viewProviderDelete()
+		content = m.viewProviderDelete()
 	default:
-		return m.viewList()
+		content = m.viewList()
 	}
+
+	// 用 lipgloss.Place 将内容放置在正确的高度
+	placeHeight := m.height - debugHeight
+	if placeHeight < 0 {
+		placeHeight = 0
+	}
+	content = lipgloss.Place(m.width, placeHeight, lipgloss.Center, lipgloss.Center, content)
+
+	// 调试面板（位于底部）
+	if m.debug {
+		content = lipgloss.JoinVertical(lipgloss.Left, content, m.renderDebugPanel())
+	}
+
+	return content
 }
 
 func (m *Model) viewList() string {
@@ -96,7 +114,7 @@ func (m *Model) viewList() string {
 
 	header := headerStyle.Render(titleText)
 
-	config := m.calculateLayout(m.width, m.height)
+	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 	helpNav := m.renderHelpText(config)
 	content := m.renderContent(config)
 
@@ -132,10 +150,7 @@ func (m *Model) viewList() string {
 			),
 		)
 
-	return lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		mainContent,
-	)
+	return mainContent
 }
 
 // renderHelpText 根据屏幕宽度渲染不同长度的帮助文本
@@ -281,7 +296,7 @@ func (m *Model) renderSingleColumn(config LayoutConfig) string {
 
 // viewSearch 搜索视图
 func (m *Model) viewSearch() string {
-	config := m.calculateLayout(m.width, m.height)
+	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 
 	// 搜索框 - 带图标和装饰
 	searchIcon := lipgloss.NewStyle().Foreground(PrimaryColor).Render("🔍")
@@ -343,8 +358,5 @@ func (m *Model) viewSearch() string {
 			),
 		)
 
-	return lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		mainContent,
-	)
+	return mainContent
 }

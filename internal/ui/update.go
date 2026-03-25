@@ -32,6 +32,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.SetSize(msg.Width, msg.Height)
 		return m, nil
 	case tea.KeyMsg:
+		// 更新最后按键（用于调试模式）
+		m.lastKey = msg.String()
 		switch m.state {
 		case StateList:
 			return m.handleListKeyMsg(msg)

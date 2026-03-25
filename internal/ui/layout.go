@@ -1,5 +1,11 @@
 package ui
 
+import (
+	"fmt"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
 // LayoutConfig 布局配置
 type LayoutConfig struct {
 	listWidth    int
@@ -24,7 +30,7 @@ func (m *Model) SetSize(width, height int) {
 	m.height = height
 
 	// 计算布局配置
-	config := m.calculateLayout(width, height)
+	config := m.calculateLayout(width, height-m.debugPanelHeight())
 	m.layoutMode = LayoutSingle
 
 	m.list.SetSize(config.listWidth, config.listHeight)
@@ -53,6 +59,13 @@ func (m *Model) SetSize(width, height int) {
 		m.viewport.Width = detailWidth
 		m.viewport.Height = detailHeight
 	}
+}
+
+func (m *Model) debugPanelHeight() int {
+	if m.debug {
+		return 1
+	}
+	return 0
 }
 
 func (m *Model) providerDialogWidth() int {
@@ -100,4 +113,67 @@ func (m *Model) calculateLayout(width, height int) LayoutConfig {
 	config.listHeight = max(minHeight, maxHeight)
 
 	return config
+}
+
+// getSelectedItemName 获取当前选中的项目或配置名称
+func (m *Model) getSelectedItemName() string {
+	switch m.state {
+	case StateList, StateAddProject, StateRenameProject, StateDeleteConfirm,
+		StateIDEMenu, StateViewDetail, StateEditDescription, StateSearch:
+		if proj := m.safeGetSelectedProject(); proj != nil {
+			return proj.Alias
+		}
+	case StateProviderList, StateProviderAdd, StateProviderEdit, StateProviderDelete:
+		if provider := m.safeGetSelectedProvider(); provider != nil {
+			return provider.Name
+		}
+	}
+	return ""
+}
+
+// renderDebugPanel 渲染调试面板
+func (m *Model) renderDebugPanel() string {
+	debugStyle := lipgloss.NewStyle().
+		Foreground(MutedText).
+		Background(BackgroundDeep).
+		Width(max(0, m.width-4)).
+		Padding(0, 2)
+
+	stateName := m.stateName()
+	itemName := m.getSelectedItemName()
+
+	info := fmt.Sprintf("State: %s | Item: %s | Key: %s", stateName, itemName, m.lastKey)
+	return debugStyle.Render(info)
+}
+
+// stateName 获取状态的字符串名称
+func (m *Model) stateName() string {
+	switch m.state {
+	case StateList:
+		return "StateList"
+	case StateAddProject:
+		return "StateAddProject"
+	case StateRenameProject:
+		return "StateRenameProject"
+	case StateDeleteConfirm:
+		return "StateDeleteConfirm"
+	case StateIDEMenu:
+		return "StateIDEMenu"
+	case StateViewDetail:
+		return "StateViewDetail"
+	case StateEditDescription:
+		return "StateEditDescription"
+	case StateSearch:
+		return "StateSearch"
+	case StateProviderList:
+		return "StateProviderList"
+	case StateProviderAdd:
+		return "StateProviderAdd"
+	case StateProviderEdit:
+		return "StateProviderEdit"
+	case StateProviderDelete:
+		return "StateProviderDelete"
+	default:
+		return "Unknown"
+	}
 }

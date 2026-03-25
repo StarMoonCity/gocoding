@@ -39,12 +39,7 @@ func (m *Model) viewAddProject() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) viewRenameProject() string {
@@ -71,12 +66,7 @@ func (m *Model) viewRenameProject() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) viewDeleteConfirm() string {
@@ -129,12 +119,7 @@ func (m *Model) viewDeleteConfirm() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) viewIDEMenu() string {
@@ -190,12 +175,7 @@ func (m *Model) viewIDEMenu() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) viewViewDetail() string {
@@ -227,12 +207,7 @@ func (m *Model) viewViewDetail() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) viewEditDescription() string {
@@ -259,12 +234,7 @@ func (m *Model) viewEditDescription() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 // viewProviderList 显示模型配置列表
@@ -339,12 +309,7 @@ func (m *Model) viewProviderList() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 // viewProviderForm 模型配置表单（新增/编辑共用）
@@ -449,12 +414,7 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 // viewProviderDelete 确认删除配置
@@ -500,12 +460,7 @@ func (m *Model) viewProviderDelete() string {
 			),
 		)
 
-	overlay := lipgloss.Place(m.width, m.height,
-		lipgloss.Center, lipgloss.Center,
-		dialog,
-	)
-
-	return overlay
+	return dialog
 }
 
 func (m *Model) renderProviderHelpItem(key, label string) string {

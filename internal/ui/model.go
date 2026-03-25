@@ -54,6 +54,9 @@ type Model struct {
 	providerDefaultOpusInput   textinput.Model // Opus 默认模型
 	editingProviderID          string          // 编辑中的配置ID，为空表示新增
 	itemIndexCache             map[string]int  // listItem.FilterValue -> index 缓存
+	// 调试模式
+	debug   bool
+	lastKey string
 }
 
 type LayoutMode int
@@ -468,6 +471,16 @@ func (m *Model) safeGetSelectedProvider() *models.ModelProvider {
 // SetState 设置应用状态
 func (m *Model) SetState(state AppState) {
 	m.state = state
+}
+
+// SetDebugMode 设置调试模式
+func (m *Model) SetDebugMode(enabled bool) {
+	m.debug = enabled
+}
+
+// IsDebugMode 检查是否开启调试模式
+func (m *Model) IsDebugMode() bool {
+	return m.debug
 }
 
 func (m *Model) Init() tea.Cmd {

@@ -152,6 +152,18 @@ go test ./...                         # Run tests
 2. **Build before commit**: Always run `go build ./cmd/gocoding/` before committing
 3. **Incremental changes**: Make small, focused changes
 
+## Git Workflow
+
+- After completing git commits, run a quick verification to confirm the commit was successful (e.g., `git log -1 --oneline`)
+
+## Refactoring
+
+- Before refactoring, create a checklist of affected files and verify changes compile before committing
+
+## UI Development (Debugging)
+
+- When fixing UI-related issues, test incrementally after each change to catch layout/alignment problems early
+
 ## LSP Support
 
 Use LSP features for code navigation and analysis:

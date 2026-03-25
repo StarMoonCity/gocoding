@@ -83,21 +83,55 @@ func (m *Model) handleAddProjectKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleRenameKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "enter":
-		alias := m.input.Value()
-		if alias != "" && m.safeGetSelectedProject() != nil {
-			current := m.safeGetSelectedProject()
-			m.store.Update(alias, current.ID)
-			m.syncListItems()
+		path := m.input.Value()
+		name := m.secondaryInput.Value()
+		if m.editingProjectID != "" {
+			// 验证路径（如果改变了）
+			if path != "" {
+				current := m.store.Get(m.editingProjectID)
+				if current != nil && current.Path != path {
+					if err := m.store.ValidatePath(path); err != nil {
+						m.errMsg = err.Error()
+						return m, nil
+					}
+				}
+			}
+			if name != "" || path != "" {
+				m.store.Update(m.editingProjectID, name, path)
+				m.syncListItems()
+			}
 		}
 		m.state = StateList
+		m.editingProjectID = ""
+		m.input.Reset()
+		m.secondaryInput.Reset()
+	case "tab":
+		// 切换焦点
+		if m.inputFocus == FocusPath {
+			m.inputFocus = FocusName
+			m.input.Blur()
+			m.secondaryInput.Focus()
+		} else {
+			m.inputFocus = FocusPath
+			m.secondaryInput.Blur()
+			m.input.Focus()
+		}
 	case "esc":
 		m.state = StateList
+		m.editingProjectID = ""
+		m.input.Reset()
+		m.secondaryInput.Reset()
 	case "ctrl+c", "ctrl+q":
 		return m, tea.Quit
 	}
 
 	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
+	// 只更新当前焦点所在输入框
+	if m.inputFocus == FocusPath {
+		m.input, cmd = m.input.Update(msg)
+	} else {
+		m.secondaryInput, cmd = m.secondaryInput.Update(msg)
+	}
 	return m, cmd
 }
 

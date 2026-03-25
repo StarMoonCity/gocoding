@@ -39,6 +39,7 @@ type Model struct {
 	inputFocus     InputFocus // 当前输入焦点
 	errMsg         string
 	tipMsg         string // 提示信息
+	editingProjectID string  // 编辑中的项目ID
 	layoutMode     LayoutMode
 	showDetails    bool
 	searchQuery    string // 搜索查询字符串

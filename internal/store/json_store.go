@@ -43,8 +43,8 @@ func (s *JSONStore) RemoveProject(id string) {
 	s.store.Remove(id)
 }
 
-func (s *JSONStore) UpdateProject(alias string, id string) {
-	s.store.Update(alias, id)
+func (s *JSONStore) UpdateProject(id, alias, path string) {
+	s.store.Update(id, alias, path)
 }
 
 func (s *JSONStore) GetProject(id string) *models.Project {

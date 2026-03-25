@@ -35,17 +35,17 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.tempPath = ""
 		return m, textinput.Blink
 	case "e":
-		// 编辑选中项目的描述
-		if current := m.safeGetSelectedProject(); current != nil {
-			m.state = StateEditDescription
-			m.ta.SetValue(current.Description)
-		}
-		return m, nil
-	case "r":
+		// 重命名选中项目
 		if current := m.safeGetSelectedProject(); current != nil {
 			m.state = StateRenameProject
-			m.input.SetValue(current.Alias)
+			m.editingProjectID = current.ID
+			m.input.SetValue(current.Path)
+			m.input.Placeholder = "输入项目路径"
 			m.input.Focus()
+			m.inputFocus = FocusPath
+			m.secondaryInput.SetValue(current.Alias)
+			m.secondaryInput.Placeholder = "输入项目名称"
+			m.secondaryInput.Blur()
 		}
 		return m, textinput.Blink
 	case "d":

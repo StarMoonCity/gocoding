@@ -45,24 +45,42 @@ func (m *Model) viewAddProject() string {
 func (m *Model) viewRenameProject() string {
 	dialogWidth := min(50, m.width-10)
 
+	inputStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), false, false, false, true).
+		BorderForeground(PrimaryDim).
+		Width(dialogWidth-6).
+		Padding(0, 1)
+
+	// 当前焦点的输入框高亮
+	pathStyle := inputStyle
+	nameStyle := inputStyle
+	if m.inputFocus == FocusPath {
+		pathStyle = pathStyle.BorderForeground(PrimaryColor)
+	} else if m.inputFocus == FocusName {
+		nameStyle = nameStyle.BorderForeground(PrimaryColor)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("✎ 重命名项目"),
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("✎ 编辑项目"),
 				"",
-				lipgloss.NewStyle().Foreground(SecondaryText).Render("新名称"),
-				m.input.View(),
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("项目路径"),
+				pathStyle.Render(m.input.View()),
+				"",
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("项目名称"),
+				nameStyle.Render(m.secondaryInput.View()),
 				"",
 				lipgloss.NewStyle().
 					Foreground(SecondaryText).
-					Render("[Enter] 确认  ·  [Esc] 取消"),
+					Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
 

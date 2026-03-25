@@ -95,12 +95,17 @@ func (s *ProjectStore) Get(id string) *Project {
 	return &s.Projects[idx]
 }
 
-func (s *ProjectStore) Update(alias string, id string) {
+func (s *ProjectStore) Update(id, alias, path string) {
 	idx, ok := s.index[id]
 	if !ok {
 		return
 	}
-	s.Projects[idx].Alias = alias
+	if alias != "" {
+		s.Projects[idx].Alias = alias
+	}
+	if path != "" {
+		s.Projects[idx].Path = path
+	}
 }
 
 func (s *ProjectStore) UpdateDescription(id string, description string) {

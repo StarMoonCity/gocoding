@@ -13,9 +13,9 @@ import (
 // handleProviderListKeyMsg 处理配置列表按键
 func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "k", "down", "ctrl+n":
+	case "j", "down", "ctrl+n":
 		m.providerList.CursorDown()
-	case "j", "up", "ctrl+p":
+	case "k", "up", "ctrl+p":
 		m.providerList.CursorUp()
 	case "n":
 		// 新增配置

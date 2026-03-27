@@ -98,7 +98,7 @@ func (m *Model) calculateLayout(width, height int) LayoutConfig {
 	case width < 100:
 		config.helpTextMode = HelpTextNormal
 	default:
-		config.helpTextMode = HelpTextNormal
+		config.helpTextMode = HelpTextFull
 	}
 
 	// 计算列表高度（预留头部、帮助文本和错误消息的空间）

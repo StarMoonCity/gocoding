@@ -296,7 +296,7 @@ func (m *Model) viewProviderList() string {
 			lipgloss.Center,
 			lipgloss.JoinHorizontal(
 				lipgloss.Left,
-				m.renderProviderHelpItem("[↑↓]", "选择"),
+				m.renderProviderHelpItem("[k↑/j↓]", "选择"),
 				"  ",
 				m.renderProviderHelpItem("[N]", "新增"),
 				"  ",

@@ -156,3 +156,53 @@ func (m *Model) updateListItems() {
 	results := m.store.Search(m.searchQuery)
 	m.list.SetItems(newListItems(results))
 }
+
+// handleBatchAddProjectKeyMsg 处理批量添加项目状态按键
+func (m *Model) handleBatchAddProjectKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case " ":
+		// 切换选中状态
+		if m.batchCursor >= 0 && m.batchCursor < len(m.batchProjects) {
+			m.batchSelected[m.batchCursor] = !m.batchSelected[m.batchCursor]
+		}
+	case "up", "k":
+		if m.batchCursor > 0 {
+			m.batchCursor--
+		}
+	case "down", "j":
+		if m.batchCursor < len(m.batchProjects)-1 {
+			m.batchCursor++
+		}
+	case "enter":
+		// 确认添加选中的项目
+		selected := m.filterBatchSelected()
+		if len(selected) > 0 {
+			for _, path := range selected {
+				alias := filepath.Base(path)
+				if alias == "" || alias == "/" || alias == "\\" {
+					alias = path
+				}
+				project := models.Project{
+					ID:        generateID(),
+					Path:      path,
+					Alias:     alias,
+					CreatedAt: time.Now(),
+				}
+				m.store.Add(project)
+			}
+			m.syncListItems()
+		}
+		m.state = StateList
+		m.batchProjects = nil
+		m.batchSelected = nil
+		m.batchCursor = 0
+	case "esc":
+		m.state = StateList
+		m.batchProjects = nil
+		m.batchSelected = nil
+		m.batchCursor = 0
+	case "ctrl+c", "ctrl+q":
+		return m, tea.Quit
+	}
+	return m, nil
+}

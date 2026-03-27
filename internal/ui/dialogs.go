@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -488,4 +490,127 @@ func (m *Model) renderProviderHelpItem(key, label string) string {
 		" ",
 		lipgloss.NewStyle().Foreground(SecondaryText).Render(label),
 	)
+}
+
+// viewBatchAddProject 批量添加项目视图
+func (m *Model) viewBatchAddProject() string {
+	dialogWidth := min(60, m.width-10)
+
+	var items []string
+	for i, path := range m.batchProjects {
+		selected := m.batchSelected[i]
+		cursor := "  "
+		if i == m.batchCursor {
+			cursor = "▸ "
+		}
+		checkbox := "[ ]"
+		if selected {
+			checkbox = "[×]"
+		}
+		items = append(items, cursor+checkbox+"  "+path)
+	}
+
+	if len(items) == 0 {
+		items = append(items, "  没有找到可添加的项目")
+	}
+
+	selectedCount := len(m.filterBatchSelected())
+	statusText := fmt.Sprintf("已选择: %d/%d 个项目", selectedCount, len(m.batchProjects))
+
+	dialog := lipgloss.NewStyle().
+		Width(dialogWidth).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(PrimaryColor).
+		Background(Background).
+		Foreground(Foreground).
+		Padding(1, 2).
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("＋ 批量添加项目"),
+				"",
+				lipgloss.NewStyle().Foreground(SecondaryText).Render("~/.claude/projects"),
+				"",
+				lipgloss.JoinVertical(lipgloss.Left, items...),
+				"",
+				lipgloss.NewStyle().Foreground(SecondaryText).Render(statusText),
+				"",
+				lipgloss.NewStyle().
+					Foreground(SecondaryText).
+					Render("[Space] 选择  ·  [↑↓] 移动  ·  [Enter] 确认  ·  [Esc] 取消"),
+			),
+		)
+
+	return dialog
+}
+
+// filterBatchSelected 返回选中的项目路径列表
+func (m *Model) filterBatchSelected() []string {
+	var result []string
+	for i, isSelected := range m.batchSelected {
+		if isSelected {
+			result = append(result, m.batchProjects[i])
+		}
+	}
+	return result
+}
+
+// loadBatchProjects 加载 ~/.claude/projects 目录下的项目
+func (m *Model) loadBatchProjects() {
+	claudeProjectsDir := os.ExpandEnv("$HOME/.claude/projects")
+
+	entries, err := os.ReadDir(claudeProjectsDir)
+	if err != nil {
+		return
+	}
+
+	m.batchProjects = nil
+	m.batchSelected = make(map[int]bool)
+	m.batchCursor = 0
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		// 读取 sessions-index.json 获取 originalPath
+		sessionIndexPath := claudeProjectsDir + "/" + entry.Name() + "/sessions-index.json"
+		data, err := os.ReadFile(sessionIndexPath)
+		if err != nil {
+			continue
+		}
+
+		var sessionIndex struct {
+			OriginalPath string `json:"originalPath"`
+		}
+		if err := json.Unmarshal(data, &sessionIndex); err != nil {
+			continue
+		}
+
+		if sessionIndex.OriginalPath == "" {
+			continue
+		}
+
+		// 检查路径是否有效
+		if _, err := os.Stat(sessionIndex.OriginalPath); err != nil {
+			continue
+		}
+
+		// 检查是否已经添加过
+		if m.isProjectAlreadyAdded(sessionIndex.OriginalPath) {
+			continue
+		}
+
+		m.batchProjects = append(m.batchProjects, sessionIndex.OriginalPath)
+	}
+}
+
+// isProjectAlreadyAdded 检查项目是否已经添加过
+func (m *Model) isProjectAlreadyAdded(path string) bool {
+	for _, p := range m.store.Projects {
+		if p.Path == path {
+			return true
+		}
+	}
+	return false
 }

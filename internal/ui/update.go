@@ -57,6 +57,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleProviderFormKeyMsg(msg)
 		case StateProviderDelete:
 			return m.handleProviderDeleteKeyMsg(msg)
+		case StateBatchAddProject:
+			return m.handleBatchAddProjectKeyMsg(msg)
 		}
 	}
 

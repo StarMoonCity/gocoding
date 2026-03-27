@@ -34,6 +34,11 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.secondaryInput.Blur()
 		m.tempPath = ""
 		return m, textinput.Blink
+	case "b":
+		// 批量添加项目
+		m.state = StateBatchAddProject
+		m.loadBatchProjects()
+		return m, nil
 	case "e":
 		// 重命名选中项目
 		if current := m.safeGetSelectedProject(); current != nil {

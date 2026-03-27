@@ -79,29 +79,26 @@ func (m *Model) providerListWidth() int {
 func (m *Model) calculateLayout(width, height int) LayoutConfig {
 	config := LayoutConfig{
 		columnGap:   2,
-		paddingX:    2,
+		paddingX:    0,
 		columnCount: 1, // 始终使用单列布局
 	}
 
-	// 根据屏幕宽度确定列表宽度和帮助文本模式
-	switch {
-	case width < 60:
-		// 超窄屏
-		config.listWidth = width - config.paddingX*2 - 2
-		config.helpTextMode = HelpTextCompact
-	case width < 100:
-		// 窄屏到中屏
-		config.listWidth = width - 20
-		config.helpTextMode = HelpTextNormal
-	default:
-		// 宽屏
-		config.listWidth = min(60, width-20)
-		config.helpTextMode = HelpTextNormal
-	}
+	// 列表宽度使用整个屏幕宽度
+	config.listWidth = width
 
 	// 确保最小宽度
 	if config.listWidth < 30 {
 		config.listWidth = 30
+	}
+
+	// 根据屏幕宽度确定帮助文本模式
+	switch {
+	case width < 60:
+		config.helpTextMode = HelpTextCompact
+	case width < 100:
+		config.helpTextMode = HelpTextNormal
+	default:
+		config.helpTextMode = HelpTextNormal
 	}
 
 	// 计算列表高度（预留头部、帮助文本和错误消息的空间）
@@ -119,7 +116,7 @@ func (m *Model) calculateLayout(width, height int) LayoutConfig {
 func (m *Model) getSelectedItemName() string {
 	switch m.state {
 	case StateList, StateAddProject, StateRenameProject, StateDeleteConfirm,
-		StateIDEMenu, StateViewDetail, StateEditDescription, StateSearch:
+		StateIDEMenu, StateViewDetail, StateEditDescription, StateSearch, StateBatchAddProject:
 		if proj := m.safeGetSelectedProject(); proj != nil {
 			return proj.Alias
 		}
@@ -173,6 +170,8 @@ func (m *Model) stateName() string {
 		return "StateProviderEdit"
 	case StateProviderDelete:
 		return "StateProviderDelete"
+	case StateBatchAddProject:
+		return "StateBatchAddProject"
 	default:
 		return "Unknown"
 	}

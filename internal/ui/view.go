@@ -148,34 +148,23 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 	sep := lipgloss.NewStyle().Foreground(MutedText).Render(" │ ")
 
 	quit := lipgloss.NewStyle().Foreground(SecondaryText).Render("退出")
-	nav := lipgloss.NewStyle().Foreground(SecondaryText).Render("导航")
 
 	switch config.helpTextMode {
 	case HelpTextCompact:
+		// 超精简版: 只显示最常用的快捷键，垂直排列以节省空间
 		return lipgloss.NewStyle().
 			Foreground(SecondaryText).
 			MarginLeft(config.paddingX).
 			Render(
-				lipgloss.JoinHorizontal(lipgloss.Left, sep,
-					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[↑↓]"),
-						nav,
-					),
+				lipgloss.JoinVertical(
+					lipgloss.Left,
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[n]"),
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("添加"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[b]"),
-						lipgloss.NewStyle().Foreground(SecondaryText).Render("批量"),
-					),
-					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[/]"),
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("搜索"),
-					),
-					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[p]"),
-						lipgloss.NewStyle().Foreground(SecondaryText).Render("配置"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[q]"),
@@ -288,14 +277,15 @@ func (m *Model) renderSingleColumn(config LayoutConfig) string {
 func (m *Model) viewSearch() string {
 	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 
-	// 搜索框 - 带图标和装饰
+	// 搜索框 - 带图标和装饰，动态宽度
 	searchIcon := lipgloss.NewStyle().Foreground(PrimaryColor).Render("🔍")
+	searchBoxWidth := max(30, m.width-12)
 	searchBox := lipgloss.NewStyle().
 		Background(BackgroundLight).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(PrimaryColor).
 		Padding(0, 2).
-		Width(m.width - 10).
+		Width(searchBoxWidth).
 		Render(searchIcon + " " + m.searchQuery + "_")
 
 	// 搜索状态

@@ -33,11 +33,14 @@ func (m *Model) SetSize(width, height int) {
 	config := m.calculateLayout(width, height-m.debugPanelHeight())
 	m.layoutMode = LayoutSingle
 
+	// 动态设置列表大小，让列表占满可用高度
 	m.list.SetSize(config.listWidth, config.listHeight)
 
 	// 设置模型配置列表大小
-	m.providerList.SetSize(m.providerListWidth(), config.listHeight)
+	providerWidth := m.providerListWidth()
+	m.providerList.SetSize(providerWidth, config.listHeight)
 
+	// 动态计算 provider 输入框宽度
 	providerInputWidth := max(20, m.providerDialogWidth()-14)
 	m.providerNameInput.Width = providerInputWidth
 	m.providerBaseURLInput.Width = providerInputWidth
@@ -48,7 +51,7 @@ func (m *Model) SetSize(width, height int) {
 	m.providerDefaultSonnetInput.Width = providerInputWidth
 	m.providerDefaultOpusInput.Width = providerInputWidth
 
-	// 设置文本区域大小
+	// 设置文本区域大小 - 使用可用宽度
 	m.ta.SetWidth(width - 10)
 	m.ta.SetHeight(5)
 
@@ -69,18 +72,21 @@ func (m *Model) debugPanelHeight() int {
 }
 
 func (m *Model) providerDialogWidth() int {
-	return min(72, max(46, m.width-10))
+	// 使用屏幕宽度的 80%，但限制在 46-72 之间
+	suggestedWidth := int(float64(m.width) * 0.8)
+	return min(72, max(46, suggestedWidth))
 }
 
 func (m *Model) providerListWidth() int {
-	return max(30, m.providerDialogWidth()-4)
+	// 使用对话框宽度的 90%
+	return max(30, m.providerDialogWidth()*9/10)
 }
 
 func (m *Model) calculateLayout(width, height int) LayoutConfig {
 	config := LayoutConfig{
 		columnGap:   2,
 		paddingX:    0,
-		columnCount: 1, // 始终使用单列布局
+		columnCount: 1,
 	}
 
 	// 列表宽度使用整个屏幕宽度
@@ -93,21 +99,28 @@ func (m *Model) calculateLayout(width, height int) LayoutConfig {
 
 	// 根据屏幕宽度确定帮助文本模式
 	switch {
-	case width < 60:
+	case width < 50:
 		config.helpTextMode = HelpTextCompact
-	case width < 100:
+	case width < 80:
 		config.helpTextMode = HelpTextNormal
 	default:
 		config.helpTextMode = HelpTextFull
 	}
 
 	// 计算列表高度（预留头部、帮助文本和错误消息的空间）
+	// 动态计算，留出空间给头部(3行)、帮助文本(2行)、错误消息(1行)、底部边距(1行)
+	headerHeight := 3
+	helpHeight := 2
+	errorHeight := 1
+	marginHeight := 1
+	 reservedHeight := headerHeight + helpHeight + errorHeight + marginHeight
+
 	minHeight := 8
-	maxHeight := height - 6
-	if maxHeight > 24 {
-		maxHeight = 24
+	listHeight := height - reservedHeight
+	if listHeight < minHeight {
+		listHeight = minHeight
 	}
-	config.listHeight = max(minHeight, maxHeight)
+	config.listHeight = listHeight
 
 	return config
 }

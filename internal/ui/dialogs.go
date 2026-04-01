@@ -9,7 +9,8 @@ import (
 )
 
 func (m *Model) viewAddProject() string {
-	dialogWidth := min(50, m.width-10)
+	// 动态计算对话框宽度：使用屏幕宽度的 70%，最小 40，最大 50
+	dialogWidth := min(50, max(40, int(float64(m.width)*0.7)))
 
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
@@ -45,7 +46,8 @@ func (m *Model) viewAddProject() string {
 }
 
 func (m *Model) viewRenameProject() string {
-	dialogWidth := min(50, m.width-10)
+	// 动态计算对话框宽度
+	dialogWidth := min(50, max(40, int(float64(m.width)*0.7)))
 
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
@@ -96,7 +98,8 @@ func (m *Model) viewDeleteConfirm() string {
 	}
 	message := fmt.Sprintf("确认删除项目 '%s' ？", current.Alias)
 
-	dialogWidth := min(50, m.width-10)
+	// 动态计算对话框宽度
+	dialogWidth := min(50, max(35, int(float64(m.width)*0.6)))
 
 	// 使用 DoubleBorder 更严肃
 	dialog := lipgloss.NewStyle().
@@ -173,7 +176,7 @@ func (m *Model) viewIDEMenu() string {
 				lipgloss.NewStyle().Foreground(SecondaryText).Render("  "+opt.Description))
 	}
 
-	dialogWidth := min(40, m.width-10)
+	dialogWidth := min(40, max(30, int(float64(m.width)*0.5)))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -207,8 +210,11 @@ func (m *Model) viewViewDetail() string {
 		Align(lipgloss.Center).
 		Render("▤ 项目详情")
 
+	// 动态计算详情对话框宽度
+	dialogWidth := max(50, int(float64(m.width)*0.8))
+
 	dialog := lipgloss.NewStyle().
-		Width(m.width-10).
+		Width(dialogWidth).
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(SecondaryText).
 		Background(Background).
@@ -231,7 +237,8 @@ func (m *Model) viewViewDetail() string {
 }
 
 func (m *Model) viewEditDescription() string {
-	dialogWidth := min(60, m.width-10)
+	// 动态计算对话框宽度
+	dialogWidth := min(60, max(45, int(float64(m.width)*0.75)))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -445,7 +452,8 @@ func (m *Model) viewProviderDelete() string {
 	}
 	message := fmt.Sprintf("确认删除配置 '%s' ？", current.Name)
 
-	dialogWidth := min(50, m.width-10)
+	// 动态计算对话框宽度
+	dialogWidth := min(50, max(35, int(float64(m.width)*0.6)))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -494,7 +502,8 @@ func (m *Model) renderProviderHelpItem(key, label string) string {
 
 // viewBatchAddProject 批量添加项目视图
 func (m *Model) viewBatchAddProject() string {
-	dialogWidth := min(60, m.width-10)
+	// 动态计算对话框宽度
+	dialogWidth := min(60, max(45, int(float64(m.width)*0.75)))
 
 	var items []string
 	for i, path := range m.batchProjects {

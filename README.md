@@ -5,7 +5,7 @@ A TUI project management tool built with Go and Bubble Tea.
 ## Features
 
 - Project management with aliases and descriptions
-- Open projects in Claude Code, VSCode, or OpenCode
+- Open projects in Claude Code, VSCode, OpenCode, or Codex CLI
 - AI model provider configuration
 - Debug mode for development
 

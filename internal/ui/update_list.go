@@ -82,6 +82,10 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEOpenCode)
 		}
+	case "4":
+		if m.safeGetSelectedProject() != nil {
+			return m.openWithIDE(models.IDECodexCLI)
+		}
 	case "p":
 		// 进入模型配置列表
 		m.state = StateProviderList

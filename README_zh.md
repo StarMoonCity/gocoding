@@ -5,7 +5,7 @@
 ## 功能特性
 
 - 项目管理，支持别名和描述
-- 支持在 Claude Code、VSCode、OpenCode 中打开项目
+- 支持在 Claude Code、VSCode、OpenCode、Codex CLI 中打开项目
 - AI 模型提供商配置
 - 调试模式（开发时使用）
 

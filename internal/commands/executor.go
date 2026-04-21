@@ -50,6 +50,25 @@ func (e *IDEExecutor) OpenProject(project *models.Project, ideType models.IDETyp
 		} else {
 			cmd = exec.Command("opencode", project.Path)
 		}
+	case models.IDECodexCLI:
+		if runtime.GOOS == "darwin" {
+			// 检查项目路径是否存在
+			if _, err := os.Stat(project.Path); os.IsNotExist(err) {
+				return fmt.Errorf("项目路径不存在: %s", project.Path)
+			}
+			// 通过 iTerm2 打开新窗口，进入项目目录并运行 codex
+			script := fmt.Sprintf(`
+				tell application "iTerm2"
+					create window with default profile
+					tell current session of current window
+						write text "cd %s && codex"
+					end tell
+				end tell
+			`, project.Path)
+			cmd = exec.Command("osascript", "-e", script)
+		} else {
+			cmd = exec.Command("codex", project.Path)
+		}
 	default:
 		if runtime.GOOS == "darwin" {
 			cmd = exec.Command("open", project.Path)
@@ -85,6 +104,8 @@ func (e *IDEExecutor) IsIDEAvailable(ideType models.IDEType) bool {
 		} else {
 			cmd = exec.Command("which", "opencode")
 		}
+	case models.IDECodexCLI:
+		cmd = exec.Command("which", "codex")
 	default:
 		return false
 	}

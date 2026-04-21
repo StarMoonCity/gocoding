@@ -20,29 +20,29 @@ import (
 type IDEExecutor = commands.IDEExecutor
 
 type Model struct {
-	store          *models.ProjectStore
-	providerStore  *models.ModelProviderStore
-	ideExec        *IDEExecutor
-	list           list.Model
-	providerList   list.Model // 用于显示配置列表
-	width          int
-	height         int
-	state          AppState
-	dialog         *DialogModel
-	input          textinput.Model
-	secondaryInput textinput.Model // 用于项目名称输入
-	ideMenu        *IDEMenuModel
-	ta             textarea.Model
-	viewport       viewport.Model
-	tempPath       string
-	tempName       string
-	inputFocus     InputFocus // 当前输入焦点
-	errMsg         string
-	tipMsg         string // 提示信息
-	editingProjectID string  // 编辑中的项目ID
-	layoutMode     LayoutMode
-	showDetails    bool
-	searchQuery    string // 搜索查询字符串
+	store            *models.ProjectStore
+	providerStore    *models.ModelProviderStore
+	ideExec          *IDEExecutor
+	list             list.Model
+	providerList     list.Model // 用于显示配置列表
+	width            int
+	height           int
+	state            AppState
+	dialog           *DialogModel
+	input            textinput.Model
+	secondaryInput   textinput.Model // 用于项目名称输入
+	ideMenu          *IDEMenuModel
+	ta               textarea.Model
+	viewport         viewport.Model
+	tempPath         string
+	tempName         string
+	inputFocus       InputFocus // 当前输入焦点
+	errMsg           string
+	tipMsg           string // 提示信息
+	editingProjectID string // 编辑中的项目ID
+	layoutMode       LayoutMode
+	showDetails      bool
+	searchQuery      string // 搜索查询字符串
 	// Provider 配置输入
 	providerInputFocus         ProviderInputFocus
 	providerNameInput          textinput.Model
@@ -59,9 +59,9 @@ type Model struct {
 	debug   bool
 	lastKey string
 	// 批量添加项目
-	batchProjects    []string // ~/.claude/projects 下的项目路径列表
-	batchSelected    map[int]bool // 选中的项目索引
-	batchCursor      int // 批量选择列表的当前光标位置
+	batchProjects []string     // ~/.claude/projects 下的项目路径列表
+	batchSelected map[int]bool // 选中的项目索引
+	batchCursor   int          // 批量选择列表的当前光标位置
 }
 
 type LayoutMode int
@@ -104,10 +104,10 @@ const (
 	StateViewDetail
 	StateEditDescription
 	StateSearch
-	StateProviderList   // 模型配置列表
-	StateProviderAdd    // 添加新配置
-	StateProviderEdit   // 编辑配置
-	StateProviderDelete // 删除确认
+	StateProviderList    // 模型配置列表
+	StateProviderAdd     // 添加新配置
+	StateProviderEdit    // 编辑配置
+	StateProviderDelete  // 删除确认
 	StateBatchAddProject // 批量添加项目
 )
 
@@ -210,6 +210,7 @@ func NewModel(store *models.ProjectStore) *Model {
 			{Type: models.IDEClaudeCode, Name: "Claude", Description: "Claude Code IDE"},
 			{Type: models.IDEVSCode, Name: "VSCode", Description: "Visual Studio Code"},
 			{Type: models.IDEOpenCode, Name: "OpenCode", Description: "OpenCode IDE"},
+			{Type: models.IDECodexCLI, Name: "Codex", Description: "Codex CLI"},
 		},
 		available: make(map[models.IDEType]bool),
 	}

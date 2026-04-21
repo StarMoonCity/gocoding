@@ -16,16 +16,17 @@ const (
 	IDEClaudeCode IDEType = "claude"
 	IDEVSCode     IDEType = "code"
 	IDEOpenCode   IDEType = "opencode"
+	IDECodexCLI   IDEType = "codex"
 )
 
 type Project struct {
-	ID         string    `json:"id"`
-	Path       string    `json:"path"`
-	Alias      string    `json:"alias"`
-	Description string   `json:"description"`
-	CreatedAt  time.Time `json:"created_at"`
-	LastOpened time.Time `json:"last_opened"`
-	OpenCount  int       `json:"open_count"`
+	ID          string    `json:"id"`
+	Path        string    `json:"path"`
+	Alias       string    `json:"alias"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastOpened  time.Time `json:"last_opened"`
+	OpenCount   int       `json:"open_count"`
 }
 
 // ValidatePath checks if a project path is valid
@@ -52,8 +53,8 @@ func (p *Project) UpdateLastOpened() {
 }
 
 type ProjectStore struct {
-	Projects []Project       `json:"projects"`
-	index    map[string]int  `json:"-"` // id -> index 映射，不持久化
+	Projects []Project      `json:"projects"`
+	index    map[string]int `json:"-"` // id -> index 映射，不持久化
 }
 
 func NewProjectStore() *ProjectStore {
@@ -173,8 +174,6 @@ func (s *ProjectStore) GetIndexByProject(id string) int {
 	}
 	return -1
 }
-
-
 
 func (s *ProjectStore) Load(path string) error {
 	data, err := os.ReadFile(path)

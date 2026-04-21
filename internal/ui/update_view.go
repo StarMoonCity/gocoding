@@ -28,6 +28,10 @@ func (m *Model) handleIDEMenuKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.list.Items()) > 0 {
 			return m.openWithIDE(models.IDEOpenCode)
 		}
+	case "4":
+		if len(m.list.Items()) > 0 {
+			return m.openWithIDE(models.IDECodexCLI)
+		}
 	case "esc":
 		m.state = StateList
 	case "ctrl+c", "ctrl+q":
@@ -89,15 +93,17 @@ func (m *Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "backspace":
 		// 删除最后一个字符
-		if len(m.searchQuery) > 0 {
-			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+		searchRunes := []rune(m.searchQuery)
+		if len(searchRunes) > 0 {
+			m.searchQuery = string(searchRunes[:len(searchRunes)-1])
 		}
 		m.updateListItems()
 		return m, nil
 	case "ctrl+h":
 		// Ctrl+H 也支持删除
-		if len(m.searchQuery) > 0 {
-			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+		searchRunes := []rune(m.searchQuery)
+		if len(searchRunes) > 0 {
+			m.searchQuery = string(searchRunes[:len(searchRunes)-1])
 		}
 		m.updateListItems()
 		return m, nil
@@ -112,6 +118,10 @@ func (m *Model) handleSearchKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "3":
 		if m.safeGetSelectedProject() != nil {
 			return m.openWithIDE(models.IDEOpenCode)
+		}
+	case "4":
+		if m.safeGetSelectedProject() != nil {
+			return m.openWithIDE(models.IDECodexCLI)
 		}
 	case "ctrl+c", "ctrl+q":
 		return m, tea.Quit

@@ -61,7 +61,13 @@ func (m *Model) View() string {
 	case StateDeleteConfirm:
 		content = m.viewDeleteConfirm()
 	case StateIDEMenu:
-		content = m.viewIDEMenu()
+		content = lipgloss.Place(
+			m.width,
+			max(0, m.height-m.debugPanelHeight()),
+			lipgloss.Center,
+			lipgloss.Center,
+			m.viewIDEMenu(),
+		)
 	case StateViewDetail:
 		content = m.viewViewDetail()
 	case StateEditDescription:
@@ -251,7 +257,7 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("IDE"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[1/2/3]"),
+						HelpKeyStyle.Render("[1/2/3/4]"),
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("快速打开"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
@@ -277,16 +283,16 @@ func (m *Model) renderSingleColumn(config LayoutConfig) string {
 func (m *Model) viewSearch() string {
 	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 
-	// 搜索框 - 带图标和装饰，动态宽度
-	searchIcon := lipgloss.NewStyle().Foreground(PrimaryColor).Render("🔍")
-	searchBoxWidth := max(30, m.width-12)
+	// 搜索框 - 明确前缀，避免某些终端下输入文本不明显
+	searchValue := m.searchQuery
+	if searchValue == "" {
+		searchValue = lipgloss.NewStyle().Foreground(MutedText).Render("输入关键词")
+	}
 	searchBox := lipgloss.NewStyle().
-		Background(BackgroundLight).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
-		Padding(0, 2).
-		Width(searchBoxWidth).
-		Render(searchIcon + " " + m.searchQuery + "_")
+		Foreground(Foreground).
+		Background(Background).
+		Padding(0, 1).
+		Render("Search: " + searchValue + "_")
 
 	// 搜索状态
 	statusText := lipgloss.NewStyle().Foreground(SecondaryText).Render(

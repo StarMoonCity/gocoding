@@ -318,7 +318,7 @@ func (m *Model) viewProviderList() string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.NormalBorder()).
 		BorderForeground(PrimaryColor).
 		Background(Background).
 		Foreground(Foreground).

@@ -36,9 +36,9 @@ func (m *Model) SetSize(width, height int) {
 	// 动态设置列表大小，让列表占满可用高度
 	m.list.SetSize(config.listWidth, config.listHeight)
 
-	// 设置模型配置列表大小
+	// 设置模型配置列表大小（预留更多行给header、colTitle、helpText等）
 	providerWidth := m.providerListWidth()
-	m.providerList.SetSize(providerWidth, config.listHeight)
+	m.providerList.SetSize(providerWidth, config.listHeight-6)
 
 	// 动态计算 provider 输入框宽度
 	providerInputWidth := max(20, m.providerDialogWidth()-14)

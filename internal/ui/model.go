@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -11,7 +10,6 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 
 	"gocoding/internal/commands"
 	"gocoding/internal/models"
@@ -379,23 +377,9 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 			Render("● 激活")
 	}
 
-	// 名称样式 - 选中时使用主色高亮
-	nameStyle := lipgloss.NewStyle().Bold(true)
-	if isSelected {
-		nameStyle = nameStyle.Foreground(PrimaryColor)
-	} else {
-		nameStyle = nameStyle.Foreground(Foreground)
-	}
-
-	// URL 和模型样式
-	infoStyle := lipgloss.NewStyle().Foreground(SecondaryText)
-
-	// 选中标记
 	selector := "  "
-	selectorStyle := lipgloss.NewStyle().Foreground(MutedText)
 	if isSelected {
 		selector = "▸ "
-		selectorStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
 	}
 
 	selectorWidth := lipgloss.Width(selector)
@@ -406,37 +390,37 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	}
 	nameWidth = max(8, nameWidth)
 
-	name := ansi.Truncate(provider.Name, nameWidth, "…")
-	line := selectorStyle.Render(selector) + nameStyle.Render(name)
-	if activeWidth > 0 {
-		gapWidth := rowWidth - selectorWidth - lipgloss.Width(name) - activeWidth
-		if gapWidth < 1 {
-			name = ansi.Truncate(provider.Name, max(6, nameWidth-1+gapWidth), "…")
-			line = selectorStyle.Render(selector) + nameStyle.Render(name)
-			gapWidth = rowWidth - selectorWidth - lipgloss.Width(name) - activeWidth
-		}
-		line = lipgloss.JoinHorizontal(
+	name := provider.Name
+
+	// 组合内容：第一行是名称 + 激活标签，第二行是 URL
+	var firstLine, secondLine string
+	if provider.Active {
+		firstLine = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			line,
-			strings.Repeat(" ", max(1, gapWidth)),
-			activeTag,
+			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(selector),
+			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Width(nameWidth).Render(name),
+			lipgloss.NewStyle().Foreground(SuccessColor).Bold(true).Render("● 激活"),
+		)
+	} else {
+		firstLine = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(selector),
+			lipgloss.NewStyle().Foreground(Foreground).Bold(true).Width(nameWidth).Render(name),
 		)
 	}
-	line = lipgloss.NewStyle().Width(rowWidth).Render(line)
 
 	// 第二行：URL 和模型
 	infoText := provider.BaseURL
 	if provider.Model != "" {
 		infoText += " • " + provider.Model
 	}
-	infoPrefix := strings.Repeat(" ", selectorWidth)
-	infoWidth := max(8, rowWidth-selectorWidth)
-	secondLine := infoPrefix + infoStyle.Render(ansi.Truncate(infoText, infoWidth, "…"))
+	infoPrefix := lipgloss.NewStyle().Foreground(MutedText).Width(selectorWidth).Render("")
+	secondLine = infoPrefix + lipgloss.NewStyle().Foreground(SecondaryText).Width(rowWidth-selectorWidth).Render(infoText)
 
 	// 使用换行符连接
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
-		line,
+		firstLine,
 		secondLine,
 	)
 

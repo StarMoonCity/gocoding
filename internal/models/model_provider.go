@@ -10,17 +10,21 @@ import (
 )
 
 type ModelProvider struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`       // 配置名称，如 "MiniMax", "Claude"
-	BaseURL         string    `json:"base_url"`   // API Base URL
-	APIKey          string    `json:"api_key"`    // API Key
-	Model           string    `json:"model"`      // 默认模型名
-	ThinkingModel   string    `json:"thinking_model"`    // 推理模型
-	DefaultHaikuModel  string `json:"default_haiku_model"`  // Haiku 默认模型
-	DefaultSonnetModel string `json:"default_sonnet_model"` // Sonnet 默认模型
-	DefaultOpusModel   string `json:"default_opus_model"`  // Opus 默认模型
-	Active          bool      `json:"active"`     // 是否激活
-	CreatedAt       time.Time `json:"created_at"`
+	ID                       string    `json:"id"`
+	Name                     string    `json:"name"`                         // 配置名称，如 "MiniMax", "Claude"
+	BaseURL                  string    `json:"base_url"`                     // API Base URL
+	APIKey                   string    `json:"api_key"`                      // API Key
+	Model                    string    `json:"model"`                        // 默认模型名
+	ThinkingModel            string    `json:"thinking_model"`               // 推理模型
+	DefaultHaikuModel        string    `json:"default_haiku_model"`          // Haiku 默认模型
+	DefaultSonnetModel       string    `json:"default_sonnet_model"`         // Sonnet 默认模型
+	DefaultOpusModel         string    `json:"default_opus_model"`           // Opus 默认模型
+	SubagentModel            string    `json:"subagent_model"`               // SubAgent 模型
+	DisableNonessential      string    `json:"disable_nonessential_traffic"` // 禁用非必要流量 (1/空)
+	DisableNonstreaming      string    `json:"disable_nonstreaming_fallback"` // 禁用非流式回退 (1/空)
+	EffortLevel              string    `json:"effort_level"`                 // 推理力度 (max/high/medium/low)
+	Active                   bool      `json:"active"`                       // 是否激活
+	CreatedAt                time.Time `json:"created_at"`
 }
 
 type ModelProviderStore struct {
@@ -70,7 +74,7 @@ func (s *ModelProviderStore) Get(id string) *ModelProvider {
 }
 
 // Update 更新配置
-func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel string) {
+func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel string) {
 	idx, ok := s.index[id]
 	if !ok {
 		return
@@ -83,6 +87,10 @@ func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingMo
 	s.Providers[idx].DefaultHaikuModel = defaultHaikuModel
 	s.Providers[idx].DefaultSonnetModel = defaultSonnetModel
 	s.Providers[idx].DefaultOpusModel = defaultOpusModel
+	s.Providers[idx].SubagentModel = subagentModel
+	s.Providers[idx].DisableNonessential = disableNonessential
+	s.Providers[idx].DisableNonstreaming = disableNonstreaming
+	s.Providers[idx].EffortLevel = effortLevel
 }
 
 // SetActive 设置激活配置

@@ -119,6 +119,50 @@ func IsProviderConfigMatch(provider *models.ModelProvider, settings map[string]i
 		}
 	}
 
+	// 检查 SubAgent 模型（允许为空）
+	if provider.SubagentModel != "" {
+		if subagentModel, ok := env["CLAUDE_CODE_SUBAGENT_MODEL"].(string); !ok || subagentModel != provider.SubagentModel {
+			return false
+		}
+	} else {
+		if _, exists := env["CLAUDE_CODE_SUBAGENT_MODEL"]; exists {
+			return false
+		}
+	}
+
+	// 检查 DisableNonessential（允许为空）
+	if provider.DisableNonessential != "" {
+		if v, ok := env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"].(string); !ok || v != provider.DisableNonessential {
+			return false
+		}
+	} else {
+		if _, exists := env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"]; exists {
+			return false
+		}
+	}
+
+	// 检查 DisableNonstreaming（允许为空）
+	if provider.DisableNonstreaming != "" {
+		if v, ok := env["CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK"].(string); !ok || v != provider.DisableNonstreaming {
+			return false
+		}
+	} else {
+		if _, exists := env["CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK"]; exists {
+			return false
+		}
+	}
+
+	// 检查 EffortLevel（允许为空）
+	if provider.EffortLevel != "" {
+		if v, ok := env["CLAUDE_CODE_EFFORT_LEVEL"].(string); !ok || v != provider.EffortLevel {
+			return false
+		}
+	} else {
+		if _, exists := env["CLAUDE_CODE_EFFORT_LEVEL"]; exists {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -193,9 +237,49 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 		delete(env, "ANTHROPIC_DEFAULT_OPUS_MODEL")
 	}
 
-	// 清理其他 ANTHROPIC_*MODEL 结尾的键（如果为空）
+	// SubAgent 模型 - 为空时移除
+	if provider.SubagentModel != "" {
+		env["CLAUDE_CODE_SUBAGENT_MODEL"] = provider.SubagentModel
+	} else {
+		delete(env, "CLAUDE_CODE_SUBAGENT_MODEL")
+	}
+
+	// 禁用非必要流量 - 为空时移除
+	if provider.DisableNonessential != "" {
+		env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = provider.DisableNonessential
+	} else {
+		delete(env, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC")
+	}
+
+	// 禁用非流式回退 - 为空时移除
+	if provider.DisableNonstreaming != "" {
+		env["CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK"] = provider.DisableNonstreaming
+	} else {
+		delete(env, "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK")
+	}
+
+	// 推理力度 - 为空时移除
+	if provider.EffortLevel != "" {
+		env["CLAUDE_CODE_EFFORT_LEVEL"] = provider.EffortLevel
+	} else {
+		delete(env, "CLAUDE_CODE_EFFORT_LEVEL")
+	}
+
+	// 清理空值键
 	for k := range env {
 		if strings.HasPrefix(k, "ANTHROPIC_") && strings.HasSuffix(k, "_MODEL") && env[k] == "" {
+			delete(env, k)
+		}
+		if k == "CLAUDE_CODE_SUBAGENT_MODEL" && env[k] == "" {
+			delete(env, k)
+		}
+		if k == "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" && env[k] == "" {
+			delete(env, k)
+		}
+		if k == "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK" && env[k] == "" {
+			delete(env, k)
+		}
+		if k == "CLAUDE_CODE_EFFORT_LEVEL" && env[k] == "" {
 			delete(env, k)
 		}
 	}

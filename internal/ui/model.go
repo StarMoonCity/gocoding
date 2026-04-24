@@ -53,6 +53,10 @@ type Model struct {
 	providerDefaultHaikuInput  textinput.Model // Haiku 默认模型
 	providerDefaultSonnetInput textinput.Model // Sonnet 默认模型
 	providerDefaultOpusInput   textinput.Model // Opus 默认模型
+	providerSubagentInput      textinput.Model // SubAgent 模型
+	providerNonessentialInput  textinput.Model // 禁用非必要流量
+	providerNonstreamingInput  textinput.Model // 禁用非流式回退
+	providerEffortInput        textinput.Model // 推理力度
 	editingProviderID          string          // 编辑中的配置ID，为空表示新增
 	itemIndexCache             map[string]int  // listItem.FilterValue -> index 缓存
 	// 调试模式
@@ -90,6 +94,10 @@ const (
 	FocusProviderDefaultHaiku
 	FocusProviderDefaultSonnet
 	FocusProviderDefaultOpus
+	FocusProviderSubagent
+	FocusProviderNonessential
+	FocusProviderNonstreaming
+	FocusProviderEffort
 	FocusProviderCount // 焦点数量
 )
 
@@ -251,28 +259,40 @@ func NewModel(store *models.ProjectStore) *Model {
 // initProviderInputs 初始化模型配置输入框
 func (m *Model) initProviderInputs() {
 	m.providerNameInput = textinput.New()
-	m.providerNameInput.Placeholder = "配置名称 (如 MiniMax)"
+	m.providerNameInput.Placeholder = "Name"
 
 	m.providerBaseURLInput = textinput.New()
-	m.providerBaseURLInput.Placeholder = "Base URL (如 https://api.minimax.chat)"
+	m.providerBaseURLInput.Placeholder = "Base URL"
 
 	m.providerAPIKeyInput = textinput.New()
 	m.providerAPIKeyInput.Placeholder = "API Key"
 
 	m.providerModelInput = textinput.New()
-	m.providerModelInput.Placeholder = "主模型 (如 MiniMax-M2.7-highspeed)"
+	m.providerModelInput.Placeholder = "Model"
 
 	m.providerThinkingModelInput = textinput.New()
-	m.providerThinkingModelInput.Placeholder = "推理模型 (如 MiniMax-M2.7-highspeed)"
+	m.providerThinkingModelInput.Placeholder = "Reasoning Model"
 
 	m.providerDefaultHaikuInput = textinput.New()
-	m.providerDefaultHaikuInput.Placeholder = "Haiku 默认模型"
+	m.providerDefaultHaikuInput.Placeholder = "Default Haiku Model"
 
 	m.providerDefaultSonnetInput = textinput.New()
-	m.providerDefaultSonnetInput.Placeholder = "Sonnet 默认模型"
+	m.providerDefaultSonnetInput.Placeholder = "Default Sonnet Model"
 
 	m.providerDefaultOpusInput = textinput.New()
-	m.providerDefaultOpusInput.Placeholder = "Opus 默认模型"
+	m.providerDefaultOpusInput.Placeholder = "Default Opus Model"
+
+	m.providerSubagentInput = textinput.New()
+	m.providerSubagentInput.Placeholder = "SubAgent Model"
+
+	m.providerNonessentialInput = textinput.New()
+	m.providerNonessentialInput.Placeholder = "1=禁用非必要流量"
+
+	m.providerNonstreamingInput = textinput.New()
+	m.providerNonstreamingInput.Placeholder = "1=禁用非流式回退"
+
+	m.providerEffortInput = textinput.New()
+	m.providerEffortInput.Placeholder = "max/high/medium/low"
 }
 
 // initProviderList 初始化模型配置列表

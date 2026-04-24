@@ -50,6 +50,10 @@ func (m *Model) SetSize(width, height int) {
 	m.providerDefaultHaikuInput.Width = providerInputWidth
 	m.providerDefaultSonnetInput.Width = providerInputWidth
 	m.providerDefaultOpusInput.Width = providerInputWidth
+	m.providerSubagentInput.Width = providerInputWidth
+	m.providerNonessentialInput.Width = providerInputWidth
+	m.providerNonstreamingInput.Width = providerInputWidth
+	m.providerEffortInput.Width = providerInputWidth
 
 	// 设置文本区域大小 - 使用可用宽度
 	m.ta.SetWidth(width - 10)

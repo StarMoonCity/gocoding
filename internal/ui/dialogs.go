@@ -339,7 +339,7 @@ func (m *Model) viewProviderList() string {
 	return dialog
 }
 
-// viewProviderForm 模型配置表单（新增/编辑共用）
+// viewProviderForm
 func (m *Model) viewProviderForm(isEdit bool) string {
 	title := "＋ 添加配置"
 	if isEdit {
@@ -363,6 +363,10 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 	defaultHaikuStyle := inputStyle
 	defaultSonnetStyle := inputStyle
 	defaultOpusStyle := inputStyle
+	subagentStyle := inputStyle
+	nonessentialStyle := inputStyle
+	nonstreamingStyle := inputStyle
+	effortStyle := inputStyle
 
 	if m.providerInputFocus == FocusProviderName {
 		nameStyle = nameStyle.BorderForeground(PrimaryColor)
@@ -380,6 +384,14 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		defaultSonnetStyle = defaultSonnetStyle.BorderForeground(PrimaryColor)
 	} else if m.providerInputFocus == FocusProviderDefaultOpus {
 		defaultOpusStyle = defaultOpusStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderSubagent {
+		subagentStyle = subagentStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderNonessential {
+		nonessentialStyle = nonessentialStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderNonstreaming {
+		nonstreamingStyle = nonstreamingStyle.BorderForeground(PrimaryColor)
+	} else if m.providerInputFocus == FocusProviderEffort {
+		effortStyle = effortStyle.BorderForeground(PrimaryColor)
 	}
 
 	// 错误消息
@@ -431,6 +443,18 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 					"",
 					lipgloss.NewStyle().Foreground(SecondaryText).Render("Opus 默认模型"),
 					defaultOpusStyle.Render(m.providerDefaultOpusInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("SubAgent 模型"),
+					subagentStyle.Render(m.providerSubagentInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非必要流量"),
+					nonessentialStyle.Render(m.providerNonessentialInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非流式回退"),
+					nonstreamingStyle.Render(m.providerNonstreamingInput.View()),
+					"",
+					lipgloss.NewStyle().Foreground(SecondaryText).Render("推理力度"),
+					effortStyle.Render(m.providerEffortInput.View()),
 				),
 				tipDisplay,
 				errDisplay,

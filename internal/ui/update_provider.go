@@ -22,11 +22,11 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.state = StateProviderAdd
 		m.providerInputFocus = FocusProviderName
 		m.providerNameInput.Reset()
-		m.providerNameInput.Placeholder = "配置名称 (如 MiniMax)"
+		m.providerNameInput.Placeholder = "Name (e.g. MiniMax)"
 		m.providerNameInput.SetValue("")
 		m.providerNameInput.Focus()
 		m.providerBaseURLInput.Reset()
-		m.providerBaseURLInput.Placeholder = "Base URL (如 https://api.minimax.chat)"
+		m.providerBaseURLInput.Placeholder = "Base URL (e.g. https://api.minimax.chat)"
 		m.providerBaseURLInput.SetValue("")
 		m.providerBaseURLInput.Blur()
 		m.providerAPIKeyInput.Reset()
@@ -34,25 +34,41 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.providerAPIKeyInput.SetValue("")
 		m.providerAPIKeyInput.Blur()
 		m.providerModelInput.Reset()
-		m.providerModelInput.Placeholder = "主模型 (如 MiniMax-M2.7-highspeed)"
+		m.providerModelInput.Placeholder = "Model (e.g. MiniMax-M2.7-highspeed)"
 		m.providerModelInput.SetValue("")
 		m.providerModelInput.Blur()
 		m.providerThinkingModelInput.Reset()
-		m.providerThinkingModelInput.Placeholder = "推理模型"
+		m.providerThinkingModelInput.Placeholder = "Reasoning Model"
 		m.providerThinkingModelInput.SetValue("")
 		m.providerThinkingModelInput.Blur()
 		m.providerDefaultHaikuInput.Reset()
-		m.providerDefaultHaikuInput.Placeholder = "Haiku 默认模型"
+		m.providerDefaultHaikuInput.Placeholder = "Default Haiku Model"
 		m.providerDefaultHaikuInput.SetValue("")
 		m.providerDefaultHaikuInput.Blur()
 		m.providerDefaultSonnetInput.Reset()
-		m.providerDefaultSonnetInput.Placeholder = "Sonnet 默认模型"
+		m.providerDefaultSonnetInput.Placeholder = "Default Sonnet Model"
 		m.providerDefaultSonnetInput.SetValue("")
 		m.providerDefaultSonnetInput.Blur()
 		m.providerDefaultOpusInput.Reset()
-		m.providerDefaultOpusInput.Placeholder = "Opus 默认模型"
+		m.providerDefaultOpusInput.Placeholder = "Default Opus Model"
 		m.providerDefaultOpusInput.SetValue("")
 		m.providerDefaultOpusInput.Blur()
+		m.providerSubagentInput.Reset()
+		m.providerSubagentInput.Placeholder = "SubAgent Model"
+		m.providerSubagentInput.SetValue("")
+		m.providerSubagentInput.Blur()
+		m.providerNonessentialInput.Reset()
+		m.providerNonessentialInput.Placeholder = "1=禁用非必要流量"
+		m.providerNonessentialInput.SetValue("")
+		m.providerNonessentialInput.Blur()
+		m.providerNonstreamingInput.Reset()
+		m.providerNonstreamingInput.Placeholder = "1=禁用非流式回退"
+		m.providerNonstreamingInput.SetValue("")
+		m.providerNonstreamingInput.Blur()
+		m.providerEffortInput.Reset()
+		m.providerEffortInput.Placeholder = "max/high/medium/low"
+		m.providerEffortInput.SetValue("")
+		m.providerEffortInput.Blur()
 		m.editingProviderID = ""
 		m.errMsg = ""
 		return m, textinput.Blink
@@ -78,6 +94,14 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerDefaultSonnetInput.Blur()
 			m.providerDefaultOpusInput.SetValue(current.DefaultOpusModel)
 			m.providerDefaultOpusInput.Blur()
+			m.providerSubagentInput.SetValue(current.SubagentModel)
+			m.providerSubagentInput.Blur()
+			m.providerNonessentialInput.SetValue(current.DisableNonessential)
+			m.providerNonessentialInput.Blur()
+			m.providerNonstreamingInput.SetValue(current.DisableNonstreaming)
+			m.providerNonstreamingInput.Blur()
+			m.providerEffortInput.SetValue(current.EffortLevel)
+			m.providerEffortInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
 		}
@@ -136,6 +160,14 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerDefaultSonnetInput.Blur()
 			m.providerDefaultOpusInput.SetValue(current.DefaultOpusModel)
 			m.providerDefaultOpusInput.Blur()
+			m.providerSubagentInput.SetValue(current.SubagentModel)
+			m.providerSubagentInput.Blur()
+			m.providerNonessentialInput.SetValue(current.DisableNonessential)
+			m.providerNonessentialInput.Blur()
+			m.providerNonstreamingInput.SetValue(current.DisableNonstreaming)
+			m.providerNonstreamingInput.Blur()
+			m.providerEffortInput.SetValue(current.EffortLevel)
+			m.providerEffortInput.Blur()
 			m.errMsg = ""
 			return m, textinput.Blink
 		}
@@ -161,6 +193,10 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		defaultHaikuModel := m.providerDefaultHaikuInput.Value()
 		defaultSonnetModel := m.providerDefaultSonnetInput.Value()
 		defaultOpusModel := m.providerDefaultOpusInput.Value()
+		subagentModel := m.providerSubagentInput.Value()
+		disableNonessential := m.providerNonessentialInput.Value()
+		disableNonstreaming := m.providerNonstreamingInput.Value()
+		effortLevel := m.providerEffortInput.Value()
 
 		// 验证
 		if name == "" {
@@ -175,19 +211,23 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// 主模型允许为空
 
 		if isEdit {
-			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel)
+			m.providerStore.Update(m.editingProviderID, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel)
 		} else {
 			provider := models.ModelProvider{
-				ID:               models.GenerateProviderID(),
-				Name:             name,
-				BaseURL:          baseURL,
-				APIKey:           apiKey,
-				Model:            model,
-				ThinkingModel:    thinkingModel,
-				DefaultHaikuModel:  defaultHaikuModel,
-				DefaultSonnetModel: defaultSonnetModel,
-				DefaultOpusModel:   defaultOpusModel,
-				CreatedAt:         time.Now(),
+				ID:                    models.GenerateProviderID(),
+				Name:                  name,
+				BaseURL:               baseURL,
+				APIKey:                apiKey,
+				Model:                 model,
+				ThinkingModel:         thinkingModel,
+				DefaultHaikuModel:     defaultHaikuModel,
+				DefaultSonnetModel:    defaultSonnetModel,
+				DefaultOpusModel:      defaultOpusModel,
+				SubagentModel:         subagentModel,
+				DisableNonessential:   disableNonessential,
+				DisableNonstreaming:   disableNonstreaming,
+				EffortLevel:           effortLevel,
+				CreatedAt:             time.Now(),
 			}
 			m.providerStore.Add(provider)
 		}
@@ -245,79 +285,26 @@ func (m *Model) setProviderTipMsg(msg string) (tea.Model, tea.Cmd) {
 
 // updateProviderFocus 更新焦点状态
 func (m *Model) updateProviderFocus() {
-	switch m.providerInputFocus {
-	case FocusProviderName:
-		m.providerNameInput.Focus()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderBaseURL:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Focus()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderAPIKey:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Focus()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderModel:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Focus()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderThinkingModel:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Focus()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderDefaultHaiku:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Focus()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderDefaultSonnet:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Focus()
-		m.providerDefaultOpusInput.Blur()
-	case FocusProviderDefaultOpus:
-		m.providerNameInput.Blur()
-		m.providerBaseURLInput.Blur()
-		m.providerAPIKeyInput.Blur()
-		m.providerModelInput.Blur()
-		m.providerThinkingModelInput.Blur()
-		m.providerDefaultHaikuInput.Blur()
-		m.providerDefaultSonnetInput.Blur()
-		m.providerDefaultOpusInput.Focus()
+	all := []*textinput.Model{
+		&m.providerNameInput,
+		&m.providerBaseURLInput,
+		&m.providerAPIKeyInput,
+		&m.providerModelInput,
+		&m.providerThinkingModelInput,
+		&m.providerDefaultHaikuInput,
+		&m.providerDefaultSonnetInput,
+		&m.providerDefaultOpusInput,
+		&m.providerSubagentInput,
+		&m.providerNonessentialInput,
+		&m.providerNonstreamingInput,
+		&m.providerEffortInput,
+	}
+	for i := range all {
+		if ProviderInputFocus(i) == m.providerInputFocus {
+			all[i].Focus()
+		} else {
+			all[i].Blur()
+		}
 	}
 }
 
@@ -341,6 +328,14 @@ func (m *Model) updateProviderInput(msg tea.Msg) tea.Cmd {
 		m.providerDefaultSonnetInput, cmd = m.providerDefaultSonnetInput.Update(msg)
 	case FocusProviderDefaultOpus:
 		m.providerDefaultOpusInput, cmd = m.providerDefaultOpusInput.Update(msg)
+	case FocusProviderSubagent:
+		m.providerSubagentInput, cmd = m.providerSubagentInput.Update(msg)
+	case FocusProviderNonessential:
+		m.providerNonessentialInput, cmd = m.providerNonessentialInput.Update(msg)
+	case FocusProviderNonstreaming:
+		m.providerNonstreamingInput, cmd = m.providerNonstreamingInput.Update(msg)
+	case FocusProviderEffort:
+		m.providerEffortInput, cmd = m.providerEffortInput.Update(msg)
 	}
 	return cmd
 }

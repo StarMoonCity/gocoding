@@ -15,12 +15,12 @@ func (m *Model) viewAddProject() string {
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
 		BorderForeground(PrimaryDim).
-		Width(dialogWidth-6).
+		Width(dialogWidth - 6).
 		Padding(0, 1)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
@@ -52,7 +52,7 @@ func (m *Model) viewRenameProject() string {
 	inputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
 		BorderForeground(PrimaryDim).
-		Width(dialogWidth-6).
+		Width(dialogWidth - 6).
 		Padding(0, 1)
 
 	// 当前焦点的输入框高亮
@@ -66,7 +66,7 @@ func (m *Model) viewRenameProject() string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
@@ -101,7 +101,29 @@ func (m *Model) viewDeleteConfirm() string {
 	// 动态计算对话框宽度
 	dialogWidth := min(50, max(35, int(float64(m.width)*0.6)))
 
-	// 使用 DoubleBorder 更严肃
+	// 按钮样式 - 根据悬停状态
+	buttonWidth := 10
+
+	// 确定按钮（右侧）
+	confirmStyle := lipgloss.NewStyle().
+		Width(buttonWidth).
+		Foreground(ErrorColor).
+		Background(lipgloss.Color("#2C1810")).
+		Padding(0, 2)
+	if m.hoverButton == 1 {
+		confirmStyle = confirmStyle.Background(ErrorColor).Foreground(Foreground)
+	}
+
+	// 取消按钮（左侧）
+	cancelStyle := lipgloss.NewStyle().
+		Width(buttonWidth).
+		Foreground(SecondaryText).
+		Background(BackgroundLight).
+		Padding(0, 2)
+	if m.hoverButton == 0 {
+		cancelStyle = cancelStyle.Background(BackgroundHover).Foreground(Foreground)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(lipgloss.DoubleBorder()).
@@ -123,17 +145,9 @@ func (m *Model) viewDeleteConfirm() string {
 				"",
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
-					lipgloss.NewStyle().
-						Foreground(ErrorColor).
-						Background(lipgloss.Color("#2C1810")).
-						Padding(0, 2).
-						Render("[ Y ] 是"),
+					cancelStyle.Render("[ N ] 否"),
 					"  ",
-					lipgloss.NewStyle().
-						Foreground(SecondaryText).
-						Background(BackgroundLight).
-						Padding(0, 2).
-						Render("[ N ] 否"),
+					confirmStyle.Render("[ Y ] 是"),
 				),
 				"",
 				lipgloss.NewStyle().
@@ -149,20 +163,20 @@ func (m *Model) viewIDEMenu() string {
 	var options []string
 	for i, opt := range m.ideMenu.options {
 		available := m.ideMenu.available[opt.Type]
+		isSelected := i == m.ideMenu.selected
+		isHovered := m.mouseEnabled && i == m.hoverIndex && !isSelected
+
 		var prefix string
 		var nameStyle lipgloss.Style
-		if i == m.ideMenu.selected {
-			prefix = lipgloss.NewStyle().
-				Foreground(PrimaryColor).
-				Render("▸ ")
-			nameStyle = lipgloss.NewStyle().
-				Foreground(PrimaryColor).
-				Bold(true)
+		if isSelected {
+			prefix = lipgloss.NewStyle().Foreground(PrimaryColor).Render("▸ ")
+			nameStyle = lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true)
+		} else if isHovered {
+			prefix = "  "
+			nameStyle = lipgloss.NewStyle().Foreground(PrimaryDim).Bold(true)
 		} else {
 			prefix = "  "
-			nameStyle = lipgloss.NewStyle().
-				Foreground(Foreground).
-				Bold(true)
+			nameStyle = lipgloss.NewStyle().Foreground(Foreground).Bold(true)
 		}
 		var statusIcon string
 		if available {
@@ -176,11 +190,11 @@ func (m *Model) viewIDEMenu() string {
 				lipgloss.NewStyle().Foreground(SecondaryText).Render("  "+opt.Description))
 	}
 
-	dialogWidth := min(40, max(30, int(float64(m.width)*0.5)))
+	dialogWidth := min(45, max(35, int(float64(m.width)*0.5)))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(PrimaryColor).
 		Background(Background).
 		Foreground(Foreground).
@@ -215,7 +229,7 @@ func (m *Model) viewViewDetail() string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.NormalBorder()).
+		Border(lipgloss.DoubleBorder()).
 		BorderForeground(SecondaryText).
 		Background(Background).
 		Foreground(Foreground).
@@ -242,8 +256,8 @@ func (m *Model) viewEditDescription() string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
@@ -266,14 +280,9 @@ func (m *Model) viewEditDescription() string {
 
 // viewProviderList 显示模型配置列表
 func (m *Model) viewProviderList() string {
-	header := lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true).
-		Align(lipgloss.Center).
-		Render("⚙ 模型配置")
-
 	dialogWidth := m.providerDialogWidth()
 	contentWidth := m.providerListWidth()
+
 	listView := lipgloss.NewStyle().
 		Width(contentWidth).
 		Align(lipgloss.Center).
@@ -288,11 +297,7 @@ func (m *Model) viewProviderList() string {
 	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = lipgloss.NewStyle().
-			Foreground(PrimaryColor).
-			Background(lipgloss.Color("#0F1926")).
-			Padding(0, 1).
-			Render("ℹ " + m.tipMsg)
+		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
 	}
 
 	helpText := lipgloss.NewStyle().
@@ -318,15 +323,15 @@ func (m *Model) viewProviderList() string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(PrimaryColor).
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				header,
+				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("⚙ 模型配置"),
 				"",
 				listView,
 				tipDisplay,
@@ -339,13 +344,8 @@ func (m *Model) viewProviderList() string {
 	return dialog
 }
 
-// viewProviderForm
-func (m *Model) viewProviderForm(isEdit bool) string {
-	title := "＋ 添加配置"
-	if isEdit {
-		title = "✎ 编辑配置"
-	}
-
+// providerFormContent 生成表单内容（用于滚动区域）
+func (m *Model) providerFormContent() string {
 	dialogWidth := m.providerDialogWidth()
 
 	inputStyle := lipgloss.NewStyle().
@@ -394,6 +394,58 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 		effortStyle = effortStyle.BorderForeground(PrimaryColor)
 	}
 
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("配置名称"),
+		nameStyle.Render(m.providerNameInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("Base URL"),
+		baseURLStyle.Render(m.providerBaseURLInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("API Key"),
+		apiKeyStyle.Render(m.providerAPIKeyInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("主模型"),
+		modelStyle.Render(m.providerModelInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("推理模型"),
+		thinkingModelStyle.Render(m.providerThinkingModelInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("Haiku 默认模型"),
+		defaultHaikuStyle.Render(m.providerDefaultHaikuInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("Sonnet 默认模型"),
+		defaultSonnetStyle.Render(m.providerDefaultSonnetInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("Opus 默认模型"),
+		defaultOpusStyle.Render(m.providerDefaultOpusInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("SubAgent 模型"),
+		subagentStyle.Render(m.providerSubagentInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非必要流量"),
+		nonessentialStyle.Render(m.providerNonessentialInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非流式回退"),
+		nonstreamingStyle.Render(m.providerNonstreamingInput.View()),
+		"",
+		lipgloss.NewStyle().Foreground(SecondaryText).Render("推理力度"),
+		effortStyle.Render(m.providerEffortInput.View()),
+	)
+}
+
+// viewProviderForm
+func (m *Model) viewProviderForm(isEdit bool) string {
+	title := "＋ 添加配置"
+	if isEdit {
+		title = "✎ 编辑配置"
+	}
+
+	// 更新表单内容的滚动区域
+	m.providerFormViewport.SetContent(m.providerFormContent())
+
+	dialogWidth := m.providerDialogWidth()
+
 	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
@@ -408,8 +460,8 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
@@ -418,50 +470,13 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 				lipgloss.Center,
 				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(title),
 				"",
-				lipgloss.JoinVertical(
-					lipgloss.Left,
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("配置名称"),
-					nameStyle.Render(m.providerNameInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("Base URL"),
-					baseURLStyle.Render(m.providerBaseURLInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("API Key"),
-					apiKeyStyle.Render(m.providerAPIKeyInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("主模型"),
-					modelStyle.Render(m.providerModelInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("推理模型"),
-					thinkingModelStyle.Render(m.providerThinkingModelInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("Haiku 默认模型"),
-					defaultHaikuStyle.Render(m.providerDefaultHaikuInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("Sonnet 默认模型"),
-					defaultSonnetStyle.Render(m.providerDefaultSonnetInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("Opus 默认模型"),
-					defaultOpusStyle.Render(m.providerDefaultOpusInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("SubAgent 模型"),
-					subagentStyle.Render(m.providerSubagentInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非必要流量"),
-					nonessentialStyle.Render(m.providerNonessentialInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("禁用非流式回退"),
-					nonstreamingStyle.Render(m.providerNonstreamingInput.View()),
-					"",
-					lipgloss.NewStyle().Foreground(SecondaryText).Render("推理力度"),
-					effortStyle.Render(m.providerEffortInput.View()),
-				),
+				m.providerFormViewport.View(),
 				tipDisplay,
 				errDisplay,
 				"",
 				lipgloss.NewStyle().
 					Foreground(SecondaryText).
-					Render("[Enter] 保存  ·  [Tab] 切换  ·  [Esc] 取消"),
+					Render("[Enter] 保存  ·  [Tab/⇧Tab] 切换  ·  [↑↓] 滚动  ·  [Esc] 取消"),
 			),
 		)
 
@@ -479,6 +494,29 @@ func (m *Model) viewProviderDelete() string {
 	// 动态计算对话框宽度
 	dialogWidth := min(50, max(35, int(float64(m.width)*0.6)))
 
+	// 按钮样式 - 根据悬停状态
+	buttonWidth := 10
+
+	// 确定按钮（右侧）
+	confirmStyle := lipgloss.NewStyle().
+		Width(buttonWidth).
+		Foreground(ErrorColor).
+		Background(lipgloss.Color("#2C1810")).
+		Padding(0, 2)
+	if m.hoverButton == 1 {
+		confirmStyle = confirmStyle.Background(ErrorColor).Foreground(Foreground)
+	}
+
+	// 取消按钮（左侧）
+	cancelStyle := lipgloss.NewStyle().
+		Width(buttonWidth).
+		Foreground(SecondaryText).
+		Background(BackgroundLight).
+		Padding(0, 2)
+	if m.hoverButton == 0 {
+		cancelStyle = cancelStyle.Background(BackgroundHover).Foreground(Foreground)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(lipgloss.DoubleBorder()).
@@ -495,17 +533,9 @@ func (m *Model) viewProviderDelete() string {
 				"",
 				lipgloss.JoinHorizontal(
 					lipgloss.Center,
-					lipgloss.NewStyle().
-						Foreground(ErrorColor).
-						Background(lipgloss.Color("#2C1810")).
-						Padding(0, 2).
-						Render("[ Y ] 是"),
+					cancelStyle.Render("[ N ] 否"),
 					"  ",
-					lipgloss.NewStyle().
-						Foreground(SecondaryText).
-						Background(BackgroundLight).
-						Padding(0, 2).
-						Render("[ N ] 否"),
+					confirmStyle.Render("[ Y ] 是"),
 				),
 				"",
 				lipgloss.NewStyle().Foreground(MutedText).Render("此操作不可恢复"),
@@ -533,27 +563,39 @@ func (m *Model) viewBatchAddProject() string {
 	for i, path := range m.batchProjects {
 		selected := m.batchSelected[i]
 		cursor := "  "
+		isHovered := m.mouseEnabled && i == m.hoverIndex
+
 		if i == m.batchCursor {
-			cursor = "▸ "
+			cursor = lipgloss.NewStyle().Foreground(PrimaryColor).Render("▸ ")
+		} else if isHovered {
+			cursor = "  "
 		}
 		checkbox := "[ ]"
 		if selected {
-			checkbox = "[×]"
+			checkbox = lipgloss.NewStyle().Foreground(SuccessColor).Render("[×]")
 		}
-		items = append(items, cursor+checkbox+"  "+path)
+
+		itemText := cursor + checkbox + "  " + path
+		if isHovered && i != m.batchCursor {
+			itemStyle := lipgloss.NewStyle().
+				Foreground(PrimaryDim).
+				Background(BackgroundHover)
+			itemText = itemStyle.Render(itemText)
+		}
+		items = append(items, itemText)
 	}
 
 	if len(items) == 0 {
-		items = append(items, "  没有找到可添加的项目")
+		items = append(items, lipgloss.NewStyle().Foreground(MutedText).Render("  没有找到可添加的项目"))
 	}
 
 	selectedCount := len(m.filterBatchSelected())
-	statusText := fmt.Sprintf("已选择: %d/%d 个项目", selectedCount, len(m.batchProjects))
+	statusText := lipgloss.NewStyle().Foreground(SuccessColor).Render(fmt.Sprintf("已选择: %d/%d", selectedCount, len(m.batchProjects)))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(PrimaryColor).
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(PrimaryDim).
 		Background(Background).
 		Foreground(Foreground).
 		Padding(1, 2).
@@ -566,11 +608,11 @@ func (m *Model) viewBatchAddProject() string {
 				"",
 				lipgloss.JoinVertical(lipgloss.Left, items...),
 				"",
-				lipgloss.NewStyle().Foreground(SecondaryText).Render(statusText),
+				statusText,
 				"",
 				lipgloss.NewStyle().
 					Foreground(SecondaryText).
-					Render("[Space] 选择  ·  [↑↓] 移动  ·  [Enter] 确认  ·  [Esc] 取消"),
+					Render("[Space/点击] 选择  ·  [↑↓] 移动  ·  [Enter] 确认  ·  [Esc] 取消"),
 			),
 		)
 

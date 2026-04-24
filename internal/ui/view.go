@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -97,20 +98,32 @@ func (m *Model) View() string {
 }
 
 func (m *Model) viewList() string {
-	// 标题 - 左对齐
-	titleStyle := lipgloss.NewStyle().
-		Foreground(PrimaryColor).
-		Bold(true)
+	// 计算分隔线宽度 (使用终端宽度减去边距)
+	sepWidth := m.width - 4
+	if sepWidth < 0 {
+		sepWidth = 0
+	}
 
+	// 使用线条构建标题栏
+	titleBar := lipgloss.NewStyle().
+		Foreground(MutedText).
+		Render(
+			"┏" + lipgloss.NewStyle().Foreground(PrimaryDim).Render(strings.Repeat("━", sepWidth)) + "┓",
+		)
+
+	titleContent := "⚙ Gocoding " + lipgloss.NewStyle().Foreground(MutedText).Render("·") + " 项目管理"
 	titleText := lipgloss.JoinHorizontal(
 		lipgloss.Left,
-		lipgloss.NewStyle().Foreground(MutedText).Render("┌"),
-		lipgloss.NewStyle().Foreground(PrimaryColor).Render(" Gocoding "),
-		lipgloss.NewStyle().Foreground(MutedText).Render("项目管理 "),
-		lipgloss.NewStyle().Foreground(MutedText).Render("┐"),
+		lipgloss.NewStyle().Foreground(MutedText).Render("┃ "),
+		lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(titleContent),
+		lipgloss.NewStyle().Foreground(MutedText).Render(" ┃"),
 	)
 
-	header := titleStyle.Render(titleText)
+	bottomBar := lipgloss.NewStyle().
+		Foreground(MutedText).
+		Render(
+			"┗" + lipgloss.NewStyle().Foreground(PrimaryDim).Render(strings.Repeat("━", sepWidth)) + "┛",
+		)
 
 	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 	helpNav := m.renderHelpText(config)
@@ -121,7 +134,7 @@ func (m *Model) viewList() string {
 		emptyMsg = lipgloss.NewStyle().
 			Foreground(SecondaryText).
 			Padding(1, 0).
-			Render("暂无项目按 [n] 添加")
+			Render("┃  暂无项目按 [n] 添加  ┃")
 	}
 
 	// 错误消息
@@ -130,13 +143,16 @@ func (m *Model) viewList() string {
 		errDisplay = ErrorBoxStyle.Render("✗ " + m.errMsg)
 	}
 
-	// 主内容 - 左对齐，铺满宽度
+	// 主内容
 	mainContent := lipgloss.NewStyle().
 		Width(m.width).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				header,
+				titleBar,
+				titleText,
+				bottomBar,
+				"",
 				content,
 				emptyMsg,
 				errDisplay,
@@ -150,8 +166,8 @@ func (m *Model) viewList() string {
 
 // renderHelpText 根据屏幕宽度渲染不同长度的帮助文本
 func (m *Model) renderHelpText(config LayoutConfig) string {
-	// 快捷键分隔符
-	sep := lipgloss.NewStyle().Foreground(MutedText).Render(" │ ")
+	// 使用竖线分隔符
+	sep := lipgloss.NewStyle().Foreground(PrimaryDim).Render("│")
 
 	quit := lipgloss.NewStyle().Foreground(SecondaryText).Render("退出")
 
@@ -185,7 +201,7 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 			Render(
 				lipgloss.JoinHorizontal(lipgloss.Left, sep,
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[↑↓]"),
+						HelpKeyStyle.Render("↑↓"),
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("导航"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
@@ -202,7 +218,7 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[e]"),
-						lipgloss.NewStyle().Foreground(SecondaryText).Render("重命名"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("编辑"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[d]"),
@@ -225,7 +241,7 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 			Render(
 				lipgloss.JoinHorizontal(lipgloss.Left, sep,
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[↑↓/j/k]"),
+						HelpKeyStyle.Render("↑↓/j/k"),
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("导航"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
@@ -242,7 +258,7 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[e]"),
-						lipgloss.NewStyle().Foreground(SecondaryText).Render("重命名"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("编辑"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[d]"),
@@ -257,8 +273,8 @@ func (m *Model) renderHelpText(config LayoutConfig) string {
 						lipgloss.NewStyle().Foreground(SecondaryText).Render("IDE"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
-						HelpKeyStyle.Render("[1/2/3/4]"),
-						lipgloss.NewStyle().Foreground(SecondaryText).Render("快速打开"),
+						HelpKeyStyle.Render("[1-4]"),
+						lipgloss.NewStyle().Foreground(SecondaryText).Render("快速"),
 					),
 					lipgloss.JoinHorizontal(lipgloss.Left, " ",
 						HelpKeyStyle.Render("[q]"),

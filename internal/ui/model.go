@@ -31,7 +31,8 @@ type Model struct {
 	secondaryInput   textinput.Model // 用于项目名称输入
 	ideMenu          *IDEMenuModel
 	ta               textarea.Model
-	viewport         viewport.Model
+	viewport              viewport.Model
+	providerFormViewport viewport.Model // 用于编辑页表单滚动
 	tempPath         string
 	tempName         string
 	inputFocus       InputFocus // 当前输入焦点
@@ -64,6 +65,10 @@ type Model struct {
 	batchProjects []string     // ~/.claude/projects 下的项目路径列表
 	batchSelected map[int]bool // 选中的项目索引
 	batchCursor   int          // 批量选择列表的当前光标位置
+	// 鼠标交互状态
+	mouseEnabled    bool       // 鼠标是否启用
+	hoverIndex      int        // 当前悬停的列表项索引
+	hoverButton     int        // 当前悬停的按钮索引
 }
 
 type LayoutMode int
@@ -233,6 +238,7 @@ func NewModel(store *models.ProjectStore) *Model {
 
 	// 初始化Viewport
 	m.viewport = viewport.New(0, 0)
+	m.providerFormViewport = viewport.New(0, 0)
 
 	// 自动定位到最近打开的项目
 	if store.Len() > 0 {
@@ -307,7 +313,7 @@ func (m *Model) initProviderList() {
 type projectListDelegate struct{}
 
 func (d projectListDelegate) Height() int                               { return 1 }
-func (d projectListDelegate) Spacing() int                              { return 1 }
+func (d projectListDelegate) Spacing() int                              { return 0 }
 func (d projectListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item list.Item) {
 	proj, ok := item.(listItem)
@@ -317,12 +323,13 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 
 	isSelected := item == m.SelectedItem()
 
+	// 竖线分隔符
+	separator := lipgloss.NewStyle().Foreground(PrimaryDim).Render(" │ ")
+
 	// 选中标记
-	selector := "  "
-	selectorStyle := lipgloss.NewStyle().Foreground(MutedText)
-	if isSelected {
-		selector = "▸ "
-		selectorStyle = lipgloss.NewStyle().Foreground(PrimaryColor)
+	selector := lipgloss.NewStyle().Foreground(PrimaryDim).Render("▸ ")
+	if !isSelected {
+		selector = "  "
 	}
 
 	// 名称
@@ -335,17 +342,15 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 
 	// 打开次数徽章
 	countBadge := lipgloss.NewStyle().
-		Foreground(SecondaryText).
-		Background(BackgroundLight).
-		Padding(0, 1).
-		MarginLeft(1).
+		Foreground(SuccessColor).
 		Render(fmt.Sprintf("×%d", proj.project.OpenCount))
 
-	// 组合内容
+	// 组合内容：名称 + 分隔符 + 打开次数
 	content := lipgloss.JoinHorizontal(
 		lipgloss.Left,
-		selectorStyle.Render(selector),
+		selector,
 		nameStyle.Render(proj.project.Alias),
+		separator,
 		countBadge,
 	)
 

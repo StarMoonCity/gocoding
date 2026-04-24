@@ -30,6 +30,25 @@ var (
 	// 选中状态 - 使用主色调作为唯一强调
 	SelectedBg     = lipgloss.Color("#1E3A5F") // 选中背景（深青色）
 	SelectedBorder = lipgloss.Color("#00D4FF") // 选中边框
+
+	// 边框线条样式
+	BorderVertical  = "│"
+	BorderHorizontal = "─"
+	BorderCornerTL  = "┌"
+	BorderCornerTR  = "┐"
+	BorderCornerBL  = "└"
+	BorderCornerBR  = "┘"
+	BorderDVertical = "║"
+	BorderDHorizontal = "═"
+	BorderDCornerTL = "╔"
+	BorderDCornerTR = "╗"
+	BorderDCornerBL = "╚"
+	BorderDCornerBR = "╝"
+	BorderTeeLeft   = "├"
+	BorderTeeRight  = "┤"
+	BorderTeeTop    = "┬"
+	BorderTeeBottom = "┴"
+	BorderCross     = "┼"
 )
 
 // 通用样式定义
@@ -156,3 +175,64 @@ var SuccessBoxStyle = lipgloss.NewStyle().
 var HelpKeyStyle = lipgloss.NewStyle().
 	Foreground(PrimaryColor).
 	Bold(true)
+
+// TitleBarStyle 标题栏样式
+var TitleBarStyle = lipgloss.NewStyle().
+	Foreground(PrimaryColor).
+	Bold(true).
+	Background(BackgroundDeep)
+
+// TitleTextStyle 标题文字样式
+var TitleTextStyle = lipgloss.NewStyle().
+	Foreground(PrimaryColor).
+	Bold(true)
+
+// SeparatorStyle 分隔线样式
+var SeparatorStyle = lipgloss.NewStyle().
+	Foreground(PrimaryDim)
+
+// ListItemStyle 列表项样式
+var ListItemStyle = lipgloss.NewStyle().
+	Foreground(Foreground)
+
+// SelectedListItemStyle 选中列表项样式
+var SelectedListItemStyle = lipgloss.NewStyle().
+	Foreground(PrimaryColor).
+	Bold(true)
+
+// ButtonStyle 按钮样式
+var ButtonStyle = lipgloss.NewStyle().
+	Foreground(Foreground).
+	Background(BackgroundLight).
+	Padding(0, 2).
+	Margin(0, 1)
+
+// ButtonHoverStyle 按钮悬停样式
+var ButtonHoverStyle = lipgloss.NewStyle().
+	Foreground(Background).
+	Background(PrimaryColor).
+	Padding(0, 2).
+	Margin(0, 1).
+	Bold(true)
+
+// DangerButtonStyle 危险按钮样式
+var DangerButtonStyle = lipgloss.NewStyle().
+	Foreground(ErrorColor).
+	Background(lipgloss.Color("#2C1810")).
+	Padding(0, 2).
+	Margin(0, 1)
+
+// DangerButtonHoverStyle 危险按钮悬停样式
+var DangerButtonHoverStyle = lipgloss.NewStyle().
+	Foreground(Foreground).
+	Background(ErrorColor).
+	Padding(0, 2).
+	Margin(0, 1).
+	Bold(true)
+
+// SuccessButtonStyle 成功按钮样式
+var SuccessButtonStyle = lipgloss.NewStyle().
+	Foreground(SuccessColor).
+	Background(lipgloss.Color("#0F2618")).
+	Padding(0, 2).
+	Margin(0, 1)

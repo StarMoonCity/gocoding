@@ -66,6 +66,14 @@ func (m *Model) SetSize(width, height int) {
 		m.viewport.Width = detailWidth
 		m.viewport.Height = detailHeight
 	}
+
+	// 设置 provider 表单 viewport（用于编辑页滚动）
+	providerDialogHeight := height - m.debugPanelHeight() - 10 // 预留标题、错误消息、操作栏等
+	if providerDialogHeight < 5 {
+		providerDialogHeight = 5
+	}
+	m.providerFormViewport.Width = m.providerDialogWidth() - 4
+	m.providerFormViewport.Height = providerDialogHeight
 }
 
 func (m *Model) debugPanelHeight() int {

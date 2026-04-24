@@ -71,6 +71,7 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.providerEffortInput.Blur()
 		m.editingProviderID = ""
 		m.errMsg = ""
+		m.providerFormViewport.GotoTop()
 		return m, textinput.Blink
 	case "e":
 		// 编辑选中配置
@@ -103,6 +104,7 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerEffortInput.SetValue(current.EffortLevel)
 			m.providerEffortInput.Blur()
 			m.errMsg = ""
+			m.providerFormViewport.GotoTop()
 			return m, textinput.Blink
 		}
 	case "d":
@@ -169,6 +171,7 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.providerEffortInput.SetValue(current.EffortLevel)
 			m.providerEffortInput.Blur()
 			m.errMsg = ""
+			m.providerFormViewport.GotoTop()
 			return m, textinput.Blink
 		}
 	case "esc":
@@ -182,6 +185,22 @@ func (m *Model) handleProviderListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // handleProviderFormKeyMsg 处理配置表单按键（新增/编辑共用）
 func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	isEdit := m.editingProviderID != ""
+
+	// 处理 viewport 滚动（需要在输入框之前处理）
+	switch msg.String() {
+	case "up", "k":
+		m.providerFormViewport.LineUp(1)
+		return m, nil
+	case "down", "j":
+		m.providerFormViewport.LineDown(1)
+		return m, nil
+	case "home":
+		m.providerFormViewport.GotoTop()
+		return m, nil
+	case "end":
+		m.providerFormViewport.GotoBottom()
+		return m, nil
+	}
 
 	switch msg.String() {
 	case "enter":
@@ -239,6 +258,16 @@ func (m *Model) handleProviderFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// 切换焦点
 		m.providerInputFocus = (m.providerInputFocus + 1) % FocusProviderCount
 		m.updateProviderFocus()
+		m.scrollToCurrentFocus()
+	case "shift+tab":
+		// 反向切换焦点
+		if m.providerInputFocus == 0 {
+			m.providerInputFocus = FocusProviderCount - 1
+		} else {
+			m.providerInputFocus--
+		}
+		m.updateProviderFocus()
+		m.scrollToCurrentFocus()
 	case "esc":
 		m.state = StateProviderList
 		m.errMsg = ""
@@ -338,4 +367,24 @@ func (m *Model) updateProviderInput(msg tea.Msg) tea.Cmd {
 		m.providerEffortInput, cmd = m.providerEffortInput.Update(msg)
 	}
 	return cmd
+}
+
+// scrollToCurrentFocus 将表单滚动到当前焦点输入框的位置
+// 每个配置项占用 3 行（标签行、输入框行、空行）
+func (m *Model) scrollToCurrentFocus() {
+	// 计算当前焦点输入框的行号
+	focusRow := int(m.providerInputFocus) * 3 // 每个配置项占3行
+
+	viewportHeight := m.providerFormViewport.Height
+	viewportYOffset := m.providerFormViewport.YOffset
+
+	// 如果当前行在可视区域下方，滚动到该位置
+	if focusRow >= viewportYOffset+viewportHeight {
+		m.providerFormViewport.GotoTop()
+		m.providerFormViewport.LineDown(focusRow - viewportYOffset)
+	} else if focusRow < viewportYOffset {
+		// 如果当前行在可视区域上方，向上滚动
+		m.providerFormViewport.GotoTop()
+		m.providerFormViewport.LineDown(focusRow)
+	}
 }

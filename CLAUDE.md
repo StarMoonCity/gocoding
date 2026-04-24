@@ -164,6 +164,40 @@ go test ./...                         # Run tests
 
 - When fixing UI-related issues, test incrementally after each change to catch layout/alignment problems early
 
+## Problem Analysis Framework
+
+遇到 Bug/显示问题时，按此顺序排查：
+
+### 显示问题（裁剪 vs 截断）
+
+1. **先确认症状类型**：
+   - 裁剪（内容被切掉）→ 尺寸/布局问题
+   - 截断（内容被…替代）→ 渲染/样式问题
+
+2. **TUI 问题排查顺序**：
+   - 检查 `SetSize()` → `calculateLayout()` → `SetWidth/SetHeight` 尺寸链
+   - 检查布局配置是否考虑了所有元素（header、helpText、padding 等）
+   - 最后才检查 Render 函数的样式逻辑
+
+3. **布局计算要点**：
+   - 对话框宽度 = 内容宽度 + padding + border
+   - 对话框高度 = 所有元素高度之和 + padding + border
+   - 列表高度 = 对话框高度 - 其他元素高度
+
+### 代码问题（逻辑错误）
+
+1. **先重现问题**：确认复现步骤
+2. **隔离范围**：缩小到具体函数/文件
+3. **假设验证**：列出可能原因，逐一排除
+4. **改动最小化**：只改必要的地方
+
+### 分析习惯
+
+- 不要急于修改代码，先说出分析计划
+- 列出 2-3 种可能的原因
+- 从最可能的开始排查
+- 修改后验证是否解决，确认没有引入新问题
+
 ## LSP Support
 
 Use LSP features for code navigation and analysis:

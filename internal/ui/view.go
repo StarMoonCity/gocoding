@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -98,32 +97,11 @@ func (m *Model) View() string {
 }
 
 func (m *Model) viewList() string {
-	// 计算分隔线宽度 (使用终端宽度减去边距)
-	sepWidth := m.width - 4
-	if sepWidth < 0 {
-		sepWidth = 0
-	}
-
-	// 使用线条构建标题栏
-	titleBar := lipgloss.NewStyle().
-		Foreground(MutedText).
-		Render(
-			"┏" + lipgloss.NewStyle().Foreground(PrimaryDim).Render(strings.Repeat("━", sepWidth)) + "┓",
-		)
-
-	titleContent := "⚙ Gocoding " + lipgloss.NewStyle().Foreground(MutedText).Render("·") + " 项目管理"
-	titleText := lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		lipgloss.NewStyle().Foreground(MutedText).Render("┃ "),
-		lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(titleContent),
-		lipgloss.NewStyle().Foreground(MutedText).Render(" ┃"),
-	)
-
-	bottomBar := lipgloss.NewStyle().
-		Foreground(MutedText).
-		Render(
-			"┗" + lipgloss.NewStyle().Foreground(PrimaryDim).Render(strings.Repeat("━", sepWidth)) + "┛",
-		)
+	// 简单标题
+	titleText := lipgloss.NewStyle().
+		Foreground(PrimaryColor).
+		Bold(true).
+		Render("Gocoding - 项目管理")
 
 	config := m.calculateLayout(m.width, m.height-m.debugPanelHeight())
 	helpNav := m.renderHelpText(config)
@@ -144,22 +122,16 @@ func (m *Model) viewList() string {
 	}
 
 	// 主内容
-	mainContent := lipgloss.NewStyle().
-		Width(m.width).
-		Render(
-			lipgloss.JoinVertical(
-				lipgloss.Left,
-				titleBar,
-				titleText,
-				bottomBar,
-				"",
-				content,
-				emptyMsg,
-				errDisplay,
-				"",
-				helpNav,
-			),
-		)
+	mainContent := lipgloss.JoinVertical(
+		lipgloss.Left,
+		titleText,
+		"",
+		content,
+		emptyMsg,
+		errDisplay,
+		"",
+		helpNav,
+	)
 
 	return mainContent
 }

@@ -291,35 +291,55 @@ func (m *Model) viewProviderList() string {
 	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
-		errDisplay = ErrorBoxStyle.Width(dialogWidth - 4).Render("✗ " + m.errMsg)
+		errBoxStyle := lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Background(lipgloss.Color("#2C1810")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(ErrorColor)
+		errDisplay = errBoxStyle.
+			Padding(1, 1).
+			Width(dialogWidth - 6).
+			Render("✗ " + m.errMsg)
 	}
 
 	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
+		tipBoxStyle := lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Background(lipgloss.Color("#0F1926")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(PrimaryDim)
+		tipDisplay = tipBoxStyle.
+			Padding(1, 1).
+			Width(dialogWidth - 6).
+			Render("ℹ " + m.tipMsg)
 	}
 
 	helpText := lipgloss.NewStyle().
 		Foreground(SecondaryText).
-		Align(lipgloss.Center).
 		Width(contentWidth).
-		Render(lipgloss.JoinVertical(
-			lipgloss.Center,
-			lipgloss.JoinHorizontal(
-				lipgloss.Left,
-				m.renderProviderHelpItem("[k↑/j↓]", "选择"),
-				"  ",
-				m.renderProviderHelpItem("[N]", "新增"),
-				"  ",
-				m.renderProviderHelpItem("[E]", "编辑"),
-				"  ",
-				m.renderProviderHelpItem("[D]", "删除"),
-				"  ",
-				m.renderProviderHelpItem("[A]", "激活"),
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					m.renderProviderHelpItem("[k↑/j↓]", "选择"),
+					"  ",
+					m.renderProviderHelpItem("[N]", "新增"),
+					"  ",
+					m.renderProviderHelpItem("[E]", "编辑"),
+					"  ",
+					m.renderProviderHelpItem("[D]", "删除"),
+					"  ",
+					m.renderProviderHelpItem("[A]", "激活"),
+				),
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					m.renderProviderHelpItem("[Esc]", "退出"),
+				),
 			),
-			m.renderProviderHelpItem("[Esc]", "退出"),
-		))
+		)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -332,10 +352,10 @@ func (m *Model) viewProviderList() string {
 			lipgloss.JoinVertical(
 				lipgloss.Center,
 				lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render("⚙ 模型配置"),
-				"",
-				listView,
 				tipDisplay,
 				errDisplay,
+				"",
+				listView,
 				"",
 				helpText,
 			),
@@ -449,13 +469,29 @@ func (m *Model) viewProviderForm(isEdit bool) string {
 	// 错误消息
 	var errDisplay string
 	if m.errMsg != "" {
-		errDisplay = ErrorBoxStyle.Width(dialogWidth - 4).Render("✗ " + m.errMsg)
+		errBoxStyle := lipgloss.NewStyle().
+			Foreground(ErrorColor).
+			Background(lipgloss.Color("#2C1810")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(ErrorColor)
+		errDisplay = errBoxStyle.
+			Padding(1, 1).
+			Width(dialogWidth - 6).
+			Render("✗ " + m.errMsg)
 	}
 
 	// 提示消息
 	var tipDisplay string
 	if m.tipMsg != "" {
-		tipDisplay = TipBoxStyle.Width(dialogWidth - 4).Render("ℹ " + m.tipMsg)
+		tipBoxStyle := lipgloss.NewStyle().
+			Foreground(PrimaryColor).
+			Background(lipgloss.Color("#0F1926")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(PrimaryDim)
+		tipDisplay = tipBoxStyle.
+			Padding(1, 1).
+			Width(dialogWidth - 6).
+			Render("ℹ " + m.tipMsg)
 	}
 
 	dialog := lipgloss.NewStyle().

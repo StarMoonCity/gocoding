@@ -164,6 +164,54 @@ go test ./...                         # Run tests
 
 - When fixing UI-related issues, test incrementally after each change to catch layout/alignment problems early
 
+## Snapshot Testing (Regression Testing)
+
+The project uses Golden File snapshot testing for UI regression prevention.
+
+### Test Files
+- `internal/ui/snapshot_test.go` - Main snapshot test file
+- `internal/ui/testdata/*.golden` - Golden file snapshots
+
+### Run Tests
+```bash
+# Run all UI tests
+go test -v ./internal/ui/...
+
+# Run snapshot tests only
+go test -v ./internal/ui/... -run TestViewSnapshot
+
+# Update snapshots (after intentional UI changes)
+go test -v ./internal/ui/... -run TestViewSnapshot -update
+```
+
+### Test Coverage
+- **Views**: List views (empty, with projects), add project form, provider list with tips
+- **Tip/Error messages**: Activation feedback, error display
+- **Layout**: Help text alignment, dialog borders
+
+### Important Rules
+1. **Do NOT use `-update` flag casually** - it overwrites golden files, hiding real regressions
+2. **Test does NOT modify config files** - activation tests simulate state without calling `WriteToClaudeSettings`
+3. **Fixed terminal size** - tests use 80x24 to ensure consistent rendering
+4. **Dynamic content normalization** - timestamps and counts are replaced with placeholders
+
+### Adding New Snapshot Tests
+```go
+{
+    name: "new_view",
+    setup: func(m *Model) {
+        m.state = StateXXX
+        // setup state...
+    },
+    golden: "new_view",
+},
+```
+
+### Notes on lipgloss.Place
+- `lipgloss.Place` alignment can behave differently in tests vs real terminal
+- Prefer standard layout composition over Place for reliability
+- Always run tests after changes to catch regressions
+
 ## Problem Analysis Framework
 
 遇到 Bug/显示问题时，按此顺序排查：

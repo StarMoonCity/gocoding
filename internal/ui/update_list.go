@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -96,32 +97,39 @@ func (m *Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// openWithIDE 使用指定 IDE 打开项目
+// openWithIDE 使用指定 IDE 打开项目（异步）
 func (m *Model) openWithIDE(ideType models.IDEType) (tea.Model, tea.Cmd) {
-	idx := m.list.Index()
-	current := m.store.GetByIndex(idx)
-	if current == nil {
-		m.state = StateList
-		return m, nil
+	return m, m.openProjectCmd(ideType)
+}
+
+// openProjectCmd 创建异步打开项目的 Cmd（带超时保护）
+func (m *Model) openProjectCmd(ideType models.IDEType) tea.Cmd {
+	return func() tea.Msg {
+		idx := m.list.Index()
+		current := m.store.GetByIndex(idx)
+		if current == nil {
+			return openProjectResultMsg{err: errors.New("未选择项目")}
+		}
+
+		// 使用超时包装 IDE 启动
+		done := make(chan error, 1)
+		go func() {
+			done <- m.ideExec.OpenProject(current, ideType)
+		}()
+
+		select {
+		case err := <-done:
+			if err != nil {
+				return openProjectResultMsg{err: err}
+			}
+			// 更新项目并排序
+			current.UpdateLastOpened()
+			m.store.SortByLastOpened()
+			m.syncListItems()
+			m.list.Select(0)
+			return openProjectResultMsg{}
+		case <-time.After(30 * time.Second):
+			return openProjectResultMsg{err: errors.New("打开超时（30秒）")}
+		}
 	}
-	current.UpdateLastOpened()
-
-	if err := m.ideExec.OpenProject(current, ideType); err != nil {
-		m.errMsg = err.Error()
-		// 3秒后清除错误消息
-		return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
-			return clearProviderMessageMsg{msgType: msgTypeErr}
-		})
-	}
-
-	// 按最后打开时间排序
-	m.store.SortByLastOpened()
-
-	// 重新渲染列表
-	m.syncListItems()
-	// 定位到最近打开的项目（第一个）
-	m.list.Select(0)
-
-	m.state = StateList
-	return m, nil
 }

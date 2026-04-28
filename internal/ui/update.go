@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbletea"
 )
 
@@ -9,6 +11,17 @@ const (
 	msgTypeErr = "err"
 	msgTypeTip = "tip"
 )
+
+// 异步操作消息类型
+type openProjectResultMsg struct {
+	err error
+}
+
+type activateProviderResultMsg struct {
+	err       error
+	alreadySet bool
+	name      string
+}
 
 // clearProviderMessageMsg 自定义消息，用于清除提供商表单的消息
 type clearProviderMessageMsg struct {
@@ -62,6 +75,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.MouseMsg:
 		return m.handleMouseMsg(msg)
+	case openProjectResultMsg:
+		return m.handleOpenProjectResultMsg(msg)
+	case activateProviderResultMsg:
+		return m.handleActivateProviderResultMsg(msg)
 	}
 
 	// 通用组件更新
@@ -88,6 +105,39 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// handleOpenProjectResultMsg 处理打开项目结果
+func (m *Model) handleOpenProjectResultMsg(msg openProjectResultMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.errMsg = msg.err.Error()
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearProviderMessageMsg{msgType: msgTypeErr}
+		})
+	}
+	m.state = StateList
+	return m, nil
+}
+
+// handleActivateProviderResultMsg 处理激活提供商结果
+func (m *Model) handleActivateProviderResultMsg(msg activateProviderResultMsg) (tea.Model, tea.Cmd) {
+	m.updateProviderListItems()
+
+	if msg.err != nil {
+		m.errMsg = "激活失败: " + msg.err.Error()
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return clearProviderMessageMsg{msgType: msgTypeErr}
+		})
+	}
+
+	if msg.alreadySet {
+		m.tipMsg = msg.name + " 配置已生效，无需更新"
+	} else {
+		m.tipMsg = "已激活 " + msg.name
+	}
+	return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return clearProviderMessageMsg{msgType: msgTypeTip}
+	})
+}
+
 // handleMouseMsg 处理鼠标消息
 func (m *Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	m.mouseEnabled = true
@@ -105,6 +155,8 @@ func (m *Model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m.handleViewDetailMouseMsg(msg)
 	case StateBatchAddProject:
 		return m.handleBatchAddProjectMouseMsg(msg)
+	case StateProviderAdd, StateProviderEdit:
+		return m.handleProviderFormMouseMsg(msg)
 	}
 
 	return m, nil
@@ -116,9 +168,9 @@ func (m *Model) handleListMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	listStartY := 3 // headerHeight
 	listEndY := m.height - 4 - 1 // footer + margin
 
-	switch msg.Type {
-	case tea.MouseLeft:
-		// 单击选择列表项
+	switch {
+	case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
+		// 单击或双击都选择列表项
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			clickedIndex := msg.Y - listStartY + m.list.Index()
 			items := m.list.Items()
@@ -127,17 +179,7 @@ func (m *Model) handleListMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				m.hoverIndex = clickedIndex
 			}
 		}
-	case tea.MouseLeft + 256: // double click
-		// 双击打开 IDE 菜单
-		if msg.Y >= listStartY && msg.Y < listEndY {
-			clickedIndex := msg.Y - listStartY + m.list.Index()
-			items := m.list.Items()
-			if clickedIndex >= 0 && clickedIndex < len(items) {
-				m.list.Select(clickedIndex)
-				m.state = StateIDEMenu
-			}
-		}
-	case tea.MouseMotion:
+	case msg.Action == tea.MouseActionMotion:
 		// 悬停更新 hoverIndex
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			hoverIdx := msg.Y - listStartY + m.list.Index()
@@ -146,9 +188,9 @@ func (m *Model) handleListMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				m.hoverIndex = hoverIdx
 			}
 		}
-	case tea.MouseWheelUp:
+	case msg.Button == tea.MouseButtonWheelUp:
 		m.list.CursorUp()
-	case tea.MouseWheelDown:
+	case msg.Button == tea.MouseButtonWheelDown:
 		m.list.CursorDown()
 	}
 	return m, nil
@@ -160,26 +202,23 @@ func (m *Model) handleProviderListMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd
 	listEndY := m.height - 4 - 1
 	itemHeight := 3 // 2 行内容 + 1 spacing
 
-	switch msg.Type {
-	case tea.MouseLeft:
+	switch {
+	case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			clickedIndex := (msg.Y - listStartY) / itemHeight
 			items := m.providerList.Items()
 			if clickedIndex >= 0 && clickedIndex < len(items) {
 				m.providerList.Select(clickedIndex)
+				m.state = StateProviderEdit
 			}
 		}
-	case tea.MouseLeft + 256:
-		if msg.Y >= listStartY && msg.Y < listEndY {
-			m.state = StateProviderEdit
-		}
-	case tea.MouseMotion:
+	case msg.Action == tea.MouseActionMotion:
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			m.hoverIndex = (msg.Y - listStartY) / itemHeight
 		}
-	case tea.MouseWheelUp:
+	case msg.Button == tea.MouseButtonWheelUp:
 		m.providerList.CursorUp()
-	case tea.MouseWheelDown:
+	case msg.Button == tea.MouseButtonWheelDown:
 		m.providerList.CursorDown()
 	}
 	return m, nil
@@ -197,7 +236,7 @@ func (m *Model) handleDialogMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	buttonStartX := (m.width - totalWidth) / 2
 	buttonY := m.height - 7
 
-	if msg.Y == buttonY && msg.Type == tea.MouseLeft {
+	if msg.Y == buttonY && msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
 		// 判断点击了哪个按钮
 		relX := msg.X - buttonStartX
 		if relX >= 0 && relX < totalWidth {
@@ -217,7 +256,7 @@ func (m *Model) handleDialogMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 悬停高亮按钮
-	if msg.Type == tea.MouseMotion && msg.Y == buttonY {
+	if msg.Action == tea.MouseActionMotion && msg.Y == buttonY {
 		relX := msg.X - buttonStartX
 		if relX >= 0 && relX < totalWidth {
 			m.hoverButton = relX / (buttonWidth + buttonSpacing)
@@ -245,7 +284,7 @@ func (m *Model) handleIDEMenuMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	menuStartY := 4
 	itemHeight := 2
 
-	if msg.Type == tea.MouseLeft && msg.Y >= menuStartY && msg.Y < menuStartY+len(m.ideMenu.options)*itemHeight {
+	if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress && msg.Y >= menuStartY && msg.Y < menuStartY+len(m.ideMenu.options)*itemHeight {
 		clickedIndex := (msg.Y - menuStartY) / itemHeight
 		if clickedIndex >= 0 && clickedIndex < len(m.ideMenu.options) {
 			m.ideMenu.selected = clickedIndex
@@ -254,7 +293,7 @@ func (m *Model) handleIDEMenuMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if msg.Type == tea.MouseMotion && msg.Y >= menuStartY && msg.Y < menuStartY+len(m.ideMenu.options)*itemHeight {
+	if msg.Action == tea.MouseActionMotion && msg.Y >= menuStartY && msg.Y < menuStartY+len(m.ideMenu.options)*itemHeight {
 		m.hoverIndex = (msg.Y - menuStartY) / itemHeight
 	}
 
@@ -263,11 +302,11 @@ func (m *Model) handleIDEMenuMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 // handleViewDetailMouseMsg 处理详情视图鼠标消息
 func (m *Model) handleViewDetailMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.MouseWheelUp:
-		m.viewport.LineUp(3)
-	case tea.MouseWheelDown:
-		m.viewport.LineDown(3)
+	switch {
+	case msg.Button == tea.MouseButtonWheelUp:
+		m.viewport.ScrollUp(3)
+	case msg.Button == tea.MouseButtonWheelDown:
+		m.viewport.ScrollDown(3)
 	}
 	return m, nil
 }
@@ -277,8 +316,8 @@ func (m *Model) handleBatchAddProjectMouseMsg(msg tea.MouseMsg) (tea.Model, tea.
 	listStartY := 4
 	listEndY := m.height - 7
 
-	switch msg.Type {
-	case tea.MouseLeft:
+	switch {
+	case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			clickedIndex := msg.Y - listStartY
 			if clickedIndex >= 0 && clickedIndex < len(m.batchProjects) {
@@ -291,18 +330,29 @@ func (m *Model) handleBatchAddProjectMouseMsg(msg tea.MouseMsg) (tea.Model, tea.
 				}
 			}
 		}
-	case tea.MouseMotion:
+	case msg.Action == tea.MouseActionMotion:
 		if msg.Y >= listStartY && msg.Y < listEndY {
 			m.hoverIndex = msg.Y - listStartY
 		}
-	case tea.MouseWheelUp:
+	case msg.Button == tea.MouseButtonWheelUp:
 		if m.batchCursor > 0 {
 			m.batchCursor--
 		}
-	case tea.MouseWheelDown:
+	case msg.Button == tea.MouseButtonWheelDown:
 		if m.batchCursor < len(m.batchProjects)-1 {
 			m.batchCursor++
 		}
+	}
+	return m, nil
+}
+
+// handleProviderFormMouseMsg 处理提供商表单鼠标消息
+func (m *Model) handleProviderFormMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case msg.Button == tea.MouseButtonWheelUp:
+		m.providerFormViewport.ScrollUp(1)
+	case msg.Button == tea.MouseButtonWheelDown:
+		m.providerFormViewport.ScrollDown(1)
 	}
 	return m, nil
 }

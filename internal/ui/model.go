@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -204,7 +206,7 @@ func NewModel(store *models.ProjectStore) *Model {
 
 	items := newListItems(store.Projects)
 
-	delegate := projectListDelegate{}
+	delegate := projectListDelegate{searchQuery: &m.searchQuery}
 
 	// 初始大小，后续 SetSize 会重新设置
 	m.list = list.New(items, delegate, 60, 14)
@@ -262,41 +264,35 @@ func NewModel(store *models.ProjectStore) *Model {
 
 // initProviderInputs 初始化模型配置输入框
 func (m *Model) initProviderInputs() {
-	m.providerNameInput = textinput.New()
-	m.providerNameInput.Placeholder = "Name"
+	placeholders := []string{
+		"Name (e.g. MiniMax)",
+		"Base URL (e.g. https://api.minimax.chat)",
+		"API Key",
+		"Model (e.g. MiniMax-M2.7-highspeed)",
+		"Reasoning Model",
+		"Default Haiku Model",
+		"Default Sonnet Model",
+		"Default Opus Model",
+		"SubAgent Model",
+		"1=禁用非必要流量",
+		"1=禁用非流式回退",
+		"max/high/medium/low",
+	}
 
-	m.providerBaseURLInput = textinput.New()
-	m.providerBaseURLInput.Placeholder = "Base URL"
+	inputs := []*textinput.Model{
+		&m.providerNameInput, &m.providerBaseURLInput, &m.providerAPIKeyInput,
+		&m.providerModelInput, &m.providerThinkingModelInput,
+		&m.providerDefaultHaikuInput, &m.providerDefaultSonnetInput,
+		&m.providerDefaultOpusInput, &m.providerSubagentInput,
+		&m.providerNonessentialInput, &m.providerNonstreamingInput,
+		&m.providerEffortInput,
+	}
 
-	m.providerAPIKeyInput = textinput.New()
-	m.providerAPIKeyInput.Placeholder = "API Key"
-
-	m.providerModelInput = textinput.New()
-	m.providerModelInput.Placeholder = "Model"
-
-	m.providerThinkingModelInput = textinput.New()
-	m.providerThinkingModelInput.Placeholder = "Reasoning Model"
-
-	m.providerDefaultHaikuInput = textinput.New()
-	m.providerDefaultHaikuInput.Placeholder = "Default Haiku Model"
-
-	m.providerDefaultSonnetInput = textinput.New()
-	m.providerDefaultSonnetInput.Placeholder = "Default Sonnet Model"
-
-	m.providerDefaultOpusInput = textinput.New()
-	m.providerDefaultOpusInput.Placeholder = "Default Opus Model"
-
-	m.providerSubagentInput = textinput.New()
-	m.providerSubagentInput.Placeholder = "SubAgent Model"
-
-	m.providerNonessentialInput = textinput.New()
-	m.providerNonessentialInput.Placeholder = "1=禁用非必要流量"
-
-	m.providerNonstreamingInput = textinput.New()
-	m.providerNonstreamingInput.Placeholder = "1=禁用非流式回退"
-
-	m.providerEffortInput = textinput.New()
-	m.providerEffortInput.Placeholder = "max/high/medium/low"
+	for i, p := range placeholders {
+		*inputs[i] = textinput.New()
+		(*inputs[i]).Placeholder = p
+		(*inputs[i]).Blur()
+	}
 }
 
 // initProviderList 初始化模型配置列表
@@ -310,7 +306,9 @@ func (m *Model) initProviderList() {
 }
 
 // projectListDelegate 项目列表自定义渲染
-type projectListDelegate struct{}
+type projectListDelegate struct {
+	searchQuery *string // 搜索查询指针，用于高亮匹配
+}
 
 func (d projectListDelegate) Height() int                               { return 1 }
 func (d projectListDelegate) Spacing() int                              { return 0 }
@@ -324,32 +322,76 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, width int, item l
 	isSelected := item == m.SelectedItem()
 
 	// 竖线分隔符
-	separator := lipgloss.NewStyle().Foreground(PrimaryDim).Render(" │ ")
+	separator := SeparatorStyle.Render(" │ ")
 
-	// 选中标记
-	selector := lipgloss.NewStyle().Foreground(PrimaryDim).Render("▸ ")
-	if !isSelected {
-		selector = "  "
+	// 选中标记 - 金色箭头
+	selector := "  "
+	if isSelected {
+		selector = lipgloss.NewStyle().Foreground(AccentGold).Render("▸ ")
 	}
 
-	// 名称
-	nameStyle := lipgloss.NewStyle().Bold(true)
-	if isSelected {
-		nameStyle = nameStyle.Foreground(PrimaryColor)
+	// 名称 - 启用预定义样式，支持搜索高亮
+	var namePart string
+	alias := proj.project.Alias
+	if d.searchQuery != nil && *d.searchQuery != "" {
+		// 搜索高亮：匹配部分用金色加粗
+		query := *d.searchQuery
+		aliasLower := strings.ToLower(alias)
+		queryLower := strings.ToLower(query)
+		if idx := strings.Index(aliasLower, queryLower); idx >= 0 {
+			before := alias[:idx]
+			match := alias[idx : idx+len(query)]
+			after := alias[idx+len(query):]
+			if isSelected {
+				namePart = lipgloss.JoinHorizontal(lipgloss.Left,
+					SelectedListItemStyle.Bold(true).Render(before),
+					lipgloss.NewStyle().Foreground(AccentGold).Bold(true).Render(match),
+					SelectedListItemStyle.Bold(true).Render(after),
+				)
+			} else {
+				namePart = lipgloss.JoinHorizontal(lipgloss.Left,
+					ListItemStyle.Render(before),
+					lipgloss.NewStyle().Foreground(AccentGold).Bold(true).Render(match),
+					ListItemStyle.Render(after),
+				)
+			}
+		} else {
+			if isSelected {
+				namePart = SelectedListItemStyle.Bold(true).Render(alias)
+			} else {
+				namePart = ListItemStyle.Render(alias)
+			}
+		}
 	} else {
-		nameStyle = nameStyle.Foreground(Foreground)
+		if isSelected {
+			namePart = SelectedListItemStyle.Bold(true).Render(alias)
+		} else {
+			namePart = ListItemStyle.Render(alias)
+		}
+	}
+
+	// 最近打开指示 (1小时内)
+	var recentDot string
+	if time.Since(proj.project.LastOpened) < 1*time.Hour {
+		recentDot = lipgloss.NewStyle().Foreground(AccentGold).Render("•")
 	}
 
 	// 打开次数徽章
-	countBadge := lipgloss.NewStyle().
-		Foreground(SuccessColor).
-		Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+	var countBadge string
+	if proj.project.OpenCount >= 10 {
+		countBadge = FeaturedBadgeStyle.Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+	} else {
+		countBadge = BadgeStyle.
+			Foreground(SuccessColor).
+			Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+	}
 
 	// 组合内容：名称 + 分隔符 + 打开次数
 	content := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		selector,
-		nameStyle.Render(proj.project.Alias),
+		recentDot,
+		namePart,
 		separator,
 		countBadge,
 	)
@@ -373,18 +415,18 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	isSelected := index == m.Index()
 	rowWidth := max(20, m.Width())
 
-	// 激活标签样式
+	// 根据 URL 推断 provider 类型色彩提示
+	accentClr := providerAccentColor(provider.BaseURL)
+
+	// 激活标签 - 使用 ActiveBadgeStyle
 	activeTag := ""
 	if provider.Active {
-		activeTag = lipgloss.NewStyle().
-			Foreground(SuccessColor).
-			Bold(true).
-			Render("● 激活")
+		activeTag = ActiveBadgeStyle.Render("● 激活")
 	}
 
 	selector := "  "
 	if isSelected {
-		selector = "▸ "
+		selector = lipgloss.NewStyle().Foreground(accentClr).Render("▸ ")
 	}
 
 	selectorWidth := lipgloss.Width(selector)
@@ -398,29 +440,49 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	name := provider.Name
 
 	// 组合内容：第一行是名称 + 激活标签，第二行是 URL
-	var firstLine, secondLine string
+	var firstLine string
+	// 选中/激活时使用不同的样式组合
+	nameStyle := ProviderItemStyle
+	if isSelected && provider.Active {
+		nameStyle = ProviderActiveItemStyle
+	} else if isSelected {
+		nameStyle = ProviderSelectedItemStyle
+	} else if provider.Active {
+		nameStyle = ProviderActiveItemStyle
+	}
+
 	if provider.Active {
 		firstLine = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(selector),
-			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Width(nameWidth).Render(name),
-			lipgloss.NewStyle().Foreground(SuccessColor).Bold(true).Render("● 激活"),
+			selector,
+			nameStyle.Bold(true).Width(nameWidth).Render(name),
+			ActiveBadgeStyle.Render("● 激活"),
+		)
+	} else if isSelected {
+		firstLine = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			selector,
+			nameStyle.Bold(true).Width(nameWidth).Render(name),
 		)
 	} else {
 		firstLine = lipgloss.JoinHorizontal(
 			lipgloss.Left,
-			lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true).Render(selector),
-			lipgloss.NewStyle().Foreground(Foreground).Bold(true).Width(nameWidth).Render(name),
+			selector,
+			nameStyle.Width(nameWidth).Render(name),
 		)
 	}
 
-	// 第二行：URL 和模型
+	// 第二行：URL 和模型 - 非激活使用 ForegroundDim 弱化
 	infoText := provider.BaseURL
 	if provider.Model != "" {
 		infoText += " • " + provider.Model
 	}
+	infoColor := SecondaryText
+	if !provider.Active {
+		infoColor = ForegroundDim
+	}
 	infoPrefix := lipgloss.NewStyle().Foreground(MutedText).Width(selectorWidth).Render("")
-	secondLine = infoPrefix + lipgloss.NewStyle().Foreground(SecondaryText).Width(rowWidth-selectorWidth).Render(infoText)
+	secondLine := infoPrefix + lipgloss.NewStyle().Foreground(infoColor).Width(rowWidth-selectorWidth).Render(infoText)
 
 	// 使用换行符连接
 	content := lipgloss.JoinVertical(
@@ -430,6 +492,23 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	)
 
 	fmt.Fprintf(w, "%s", content)
+}
+
+// providerAccentColor 根据 URL 返回 provider 类型色彩提示
+func providerAccentColor(url string) lipgloss.Color {
+	lower := strings.ToLower(url)
+	switch {
+	case strings.Contains(lower, "anthropic"):
+		return AccentGold
+	case strings.Contains(lower, "minimax"):
+		return AccentMagenta
+	case strings.Contains(lower, "openai"):
+		return SuccessColor
+	case strings.Contains(lower, "deepseek"):
+		return AccentCyan
+	default:
+		return PrimaryColor
+	}
 }
 
 // SetProviderStore 设置模型配置存储

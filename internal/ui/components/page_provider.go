@@ -163,6 +163,11 @@ func (p *ProviderListPage) OnDeactivate() {
 func (p *ProviderListPage) SetSize(width, height int) {
 	p.width = width
 	p.height = height
+
+	// 动态计算列表尺寸
+	listWidth := min(80, max(50, width-4))
+	listHeight := max(8, height-10)
+	p.list.SetSize(listWidth, listHeight)
 }
 
 // Update 处理消息
@@ -330,7 +335,8 @@ func (p *ProviderListPage) viewList() string {
 			),
 		)
 
-	return dialog
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProviderListPage) viewAdd() string {
@@ -384,7 +390,7 @@ func (p *ProviderListPage) viewAdd() string {
 		items = append(items, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.AccentMagenta).
@@ -392,6 +398,9 @@ func (p *ProviderListPage) viewAdd() string {
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(lipgloss.JoinVertical(lipgloss.Center, items...))
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProviderListPage) viewEdit() string {
@@ -445,7 +454,7 @@ func (p *ProviderListPage) viewEdit() string {
 		items = append(items, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.AccentMagenta).
@@ -453,6 +462,9 @@ func (p *ProviderListPage) viewEdit() string {
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(lipgloss.JoinVertical(lipgloss.Center, items...))
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProviderListPage) viewDeleteConfirm() string {
@@ -482,7 +494,7 @@ func (p *ProviderListPage) viewDeleteConfirm() string {
 		cancelStyle = cancelStyle.Background(ui.BackgroundHover).Foreground(ui.Foreground)
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.ErrorColor).
@@ -501,6 +513,9 @@ func (p *ProviderListPage) viewDeleteConfirm() string {
 				lipgloss.NewStyle().Foreground(ui.MutedText).Render("此操作不可恢复"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 // ============== 处理器 ==============

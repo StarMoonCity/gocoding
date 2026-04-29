@@ -94,6 +94,11 @@ func (p *SearchPage) OnDeactivate() {
 func (p *SearchPage) SetSize(width, height int) {
 	p.width = width
 	p.height = height
+
+	// 动态计算列表尺寸
+	listWidth := min(80, max(50, width-4))
+	listHeight := max(8, height-10)
+	p.list.SetSize(listWidth, listHeight)
 }
 
 // Update 处理消息
@@ -147,8 +152,9 @@ func (p *SearchPage) viewList() string {
 	if p.searchQuery != "" {
 		borderColor = ui.AccentCyan
 	}
+	searchBoxWidth := max(40, p.width-10)
 	searchBox := lipgloss.NewStyle().
-		Width(p.width - 4).
+		Width(searchBoxWidth).
 		Foreground(ui.Foreground).
 		Background(ui.BackgroundSurface).
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
@@ -177,8 +183,9 @@ func (p *SearchPage) viewList() string {
 	}
 
 	// 帮助文本
+	helpTextWidth := max(40, p.width-10)
 	helpText := lipgloss.NewStyle().
-		Width(p.width - 4).
+		Width(helpTextWidth).
 		Foreground(ui.SecondaryText).
 		Render(
 			lipgloss.JoinHorizontal(lipgloss.Left,
@@ -203,10 +210,7 @@ func (p *SearchPage) viewList() string {
 			Render("没有匹配的项目")
 	}
 
-	mainContent := lipgloss.NewStyle().
-		Width(p.width).
-		Render(
-			lipgloss.JoinVertical(
+	mainContent := lipgloss.JoinVertical(
 				lipgloss.Left,
 				searchBox,
 				"",
@@ -216,10 +220,12 @@ func (p *SearchPage) viewList() string {
 				statusText,
 				"",
 				helpText,
-			),
-		)
+			)
 
-	return mainContent
+	// 上下居中，左右左对齐带间距
+	return lipgloss.Place(p.width, p.height, lipgloss.Left, lipgloss.Center,
+		lipgloss.JoinHorizontal(lipgloss.Left, "  ", mainContent),
+	)
 }
 
 func (p *SearchPage) viewIDEMenu() string {

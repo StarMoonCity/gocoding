@@ -170,7 +170,8 @@ func (p *BatchAddPage) View(width, height int) string {
 			),
 		)
 
-	return dialog
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 // HandleMouse 处理鼠标消息

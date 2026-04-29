@@ -168,6 +168,7 @@ func NewProjectListPage(store *models.ProjectStore) *ProjectListPage {
 	items := newListItems(store.Projects)
 	delegate := projectListDelegate{searchQuery: new(string)}
 
+	// 初始化列表，使用占位尺寸，实际尺寸在 SetSize 时计算
 	p.list = list.New(items, delegate, 60, 14)
 	p.list.Title = ""
 	p.list.Styles.Title = lipgloss.NewStyle().Foreground(ui.SecondaryText).Bold(true).MarginBottom(1)
@@ -236,6 +237,11 @@ func (p *ProjectListPage) OnDeactivate() {
 func (p *ProjectListPage) SetSize(width, height int) {
 	p.width = width
 	p.height = height
+
+	// 动态计算列表尺寸
+	listWidth := min(80, max(50, width-4))
+	listHeight := max(8, height-10)
+	p.list.SetSize(listWidth, listHeight)
 }
 
 // Update 处理消息
@@ -341,15 +347,28 @@ func (p *ProjectListPage) viewList() string {
 		p.errMsg = ""
 	}
 
-	return lipgloss.JoinVertical(
+	// 计算内容区域
+	listContent := lipgloss.JoinVertical(
 		lipgloss.Left,
-		headerBlock,
 		"",
 		content,
 		emptyMsg,
 		errDisplay,
 		"",
 		helpNav,
+	)
+
+	// 整体内容区域 - 左对齐带间距，垂直居中
+	contentWidth := max(60, p.width-10)
+	fullContent := lipgloss.NewStyle().
+		Width(contentWidth).
+		Render(
+			lipgloss.JoinVertical(lipgloss.Left, headerBlock, listContent),
+		)
+
+	// 上下居中，左右左对齐带间距
+	return lipgloss.Place(p.width, p.height, lipgloss.Left, lipgloss.Center,
+		lipgloss.JoinHorizontal(lipgloss.Left, "  ", fullContent),
 	)
 }
 
@@ -367,7 +386,7 @@ func (p *ProjectListPage) viewAdd() string {
 		nameStyle = focusedInput
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.PrimaryColor).
@@ -388,6 +407,9 @@ func (p *ProjectListPage) viewAdd() string {
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProjectListPage) viewRename() string {
@@ -404,7 +426,7 @@ func (p *ProjectListPage) viewRename() string {
 		nameStyle = focusedInput
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.PrimaryColor).
@@ -425,6 +447,9 @@ func (p *ProjectListPage) viewRename() string {
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProjectListPage) viewDeleteConfirm() string {
@@ -446,7 +471,7 @@ func (p *ProjectListPage) viewDeleteConfirm() string {
 		cancelStyle = cancelStyle.Background(ui.BackgroundHover).Foreground(ui.Foreground)
 	}
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.ErrorColor).
@@ -465,6 +490,9 @@ func (p *ProjectListPage) viewDeleteConfirm() string {
 				lipgloss.NewStyle().Foreground(ui.MutedText).Render("此操作不可恢复"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProjectListPage) viewIDEMenu() string {
@@ -482,7 +510,7 @@ func (p *ProjectListPage) viewDetail() string {
 
 	dialogWidth := max(50, int(float64(p.width)*0.8))
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.PrimaryColor).
@@ -499,12 +527,15 @@ func (p *ProjectListPage) viewDetail() string {
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Esc] 返回"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProjectListPage) viewEditDesc() string {
 	dialogWidth := min(60, max(45, int(float64(p.width)*0.75)))
 
-	return lipgloss.NewStyle().
+	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.PrimaryColor).
@@ -522,6 +553,9 @@ func (p *ProjectListPage) viewEditDesc() string {
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter/Ctrl+S] 保存  ·  [Esc] 取消"),
 			),
 		)
+
+	// 上下左右居中
+	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 // ============== 处理器 ==============
@@ -810,6 +844,10 @@ func (p *ProjectListPage) renderHelpText() string {
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
 					ui.HelpKeyActionStyle.Render("[b]"),
 					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("批量"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[p]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("配置"),
 				),
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
 					ui.HelpKeyDangerStyle.Render("[d]"),

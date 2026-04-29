@@ -15,18 +15,18 @@ var (
 	BackgroundLight  = lipgloss.Color("#243246") // 表面层
 	BackgroundHover  = lipgloss.Color("#2D3B4F") // 悬停状态
 
-	// 主色调 - 青色系（霓虹风格）
-	PrimaryColor    = lipgloss.Color("#00E5FF") // 亮青色（主色）
-	PrimaryColorAlt = lipgloss.Color("#00D4FF") // 备用青色
-	PrimaryDim      = lipgloss.Color("#0088A3") // 深青色
-	PrimaryDark     = lipgloss.Color("#005A6E") // 最深青
-	PrimaryGlow     = lipgloss.Color("#00E5FF") // 发光色（同主色）
+	// 主色调 - 柔和青色系（护眼）
+	PrimaryColor    = lipgloss.Color("#4DB6AC") // 柔和青色
+	PrimaryColorAlt = lipgloss.Color("#26A69A") // 备用青色
+	PrimaryDim      = lipgloss.Color("#00796B") // 深青色
+	PrimaryDark     = lipgloss.Color("#004D40") // 最深青
+	PrimaryGlow     = lipgloss.Color("#4DB6AC") // 发光色（同主色）
 
-	// 状态色
-	SuccessColor = lipgloss.Color("#00FF88") // 霓虹绿
+	// 状态色 - 柔和色系
+	SuccessColor = lipgloss.Color("#4CAF50") // 柔和绿色（非霓虹）
 	WarningColor = lipgloss.Color("#FFB300") // 琥珀色
-	ErrorColor   = lipgloss.Color("#FF3366") // 霓虹红
-	ErrorDim     = lipgloss.Color("#CC2952") // 深红
+	ErrorColor   = lipgloss.Color("#E57373") // 柔和红色
+	ErrorDim     = lipgloss.Color("#B06060") // 深红
 
 	// 文字色（层次分明）
 	Foreground     = lipgloss.Color("#FFFFFF") // 主文字（纯白）
@@ -47,16 +47,16 @@ var (
 	FocusBorder     = lipgloss.Color("#00E5FF") // 焦点边框
 	FocusBg         = lipgloss.Color("#0D2A36") // 焦点背景
 
-	// 特殊效果色
-	AccentCyan      = lipgloss.Color("#00FFE5") // 青色强调
-	AccentMagenta   = lipgloss.Color("#FF00FF") // 洋红强调
-	AccentGold      = lipgloss.Color("#FFD700") // 金色强调
+	// 特殊效果色 - 柔和色系（舒适护眼）
+	AccentCyan      = lipgloss.Color("#5BBFBA") // 柔和青色（非霓虹）
+	AccentMagenta   = lipgloss.Color("#B060B0") // 柔和洋红（非霓虹）
+	AccentGold      = lipgloss.Color("#D4A574") // 柔和金色（非霓虹）
 
-	// IDE 品牌色 - 每个 IDE 有独特的视觉标识
-	IDEClaudeColor   = lipgloss.Color("#FF9E3D") // 橙色 - Claude
-	IDEVSCodeColor   = lipgloss.Color("#007ACC") // 经典蓝 - VSCode
-	IDEOpenCodeColor = lipgloss.Color("#00FF88") // 霓虹绿 - OpenCode
-	IDECodexColor    = lipgloss.Color("#FF00FF") // 洋红 - Codex
+	// IDE 品牌色 - 柔和色系
+	IDEClaudeColor   = lipgloss.Color("#E6A370") // 柔和橙色 - Claude
+	IDEVSCodeColor   = lipgloss.Color("#4A90A4") // 柔和蓝色 - VSCode
+	IDEOpenCodeColor = lipgloss.Color("#4CAF50") // 柔和绿色 - OpenCode
+	IDECodexColor    = lipgloss.Color("#9B6B9B") // 柔和洋红 - Codex
 )
 
 // 边框定义 - 霓虹风格
@@ -264,10 +264,10 @@ var FeaturedBadgeStyle = lipgloss.NewStyle().
 	MarginLeft(1).
 	Bold(true)
 
-// ActiveBadgeStyle 激活状态徽章（霓虹绿背景）
+// ActiveBadgeStyle 激活状态徽章（柔和绿色背景）
 var ActiveBadgeStyle = lipgloss.NewStyle().
-	Foreground(BackgroundDeep).
-	Background(SuccessColor).
+	Foreground(Foreground).
+	Background(lipgloss.Color("#2D5A4A")).
 	Padding(0, 1).
 	MarginLeft(1).
 	Bold(true)
@@ -349,10 +349,10 @@ var ProviderSelectedItemStyle = lipgloss.NewStyle().
 	BorderLeftForeground(PrimaryColor).
 	Padding(0, 1)
 
-// Provider 激活项样式 - 更强发光
+// Provider 激活项样式 - 柔和发光
 var ProviderActiveItemStyle = lipgloss.NewStyle().
-	Foreground(Background).
-	Background(SuccessColor).
+	Foreground(Foreground).
+	Background(lipgloss.Color("#2D5A4A")). // 柔和绿色背景
 	Bold(true).
 	Padding(0, 1)
 

@@ -43,30 +43,46 @@ golangci-lint run ./...
 
 ## Architecture
 
-### Dependency Flow
+### Enterprise Architecture
+
+The application follows an enterprise-level layered architecture:
+
 ```
 cmd/gocoding/main.go
-    └── internal/ui/model.go (Bubble Tea Model)
-        ├── internal/models/project.go (Project/ProjectStore)
-        ├── internal/models/model_provider.go (ModelProvider/ModelProviderStore)
-        ├── internal/commands/executor.go (IDE execution)
-        ├── internal/config/config.go (Viper config)
-        └── internal/store/json_store.go (JSON persistence)
+    └── internal/ui/components/
+        ├── app_model.go        # AppModel (Central Router)
+        ├── page_model.go       # PageModel interface
+        ├── page_project.go     # ProjectListPage
+        ├── page_provider.go    # ProviderListPage
+        ├── page_search.go      # SearchPage
+        ├── page_batch_add.go   # BatchAddPage
+        ├── modal_manager.go    # ModalManager (stack-based)
+        ├── toast_manager.go    # ToastManager (notification queue)
+        ├── status_bar.go       # StatusBar component
+        └── dialogs.go          # Reusable dialogs (ConfirmDialog, IDEMenu)
 ```
 
-### UI State Machine
+**Component Responsibilities:**
+- **AppModel**: Central router managing state, pages, modals, toasts, and status bar
+- **PageModel**: Interface for page implementations (ProjectListPage, ProviderListPage, SearchPage, BatchAddPage)
+- **ModalManager**: Stack-based modal dialog management
+- **ToastManager**: Notification queue with auto-dismiss
+- **StatusBar**: Contextual help and status display
 
-The `Model` in `internal/ui/model.go` uses a state machine pattern:
+### AppState
+
+Application uses a state machine pattern via `AppModel.currentState`:
 
 **Project Management:**
 - `StateList` - Main project list view
-- `StateAddProject` - Add new project (path auto-fills name)
-- `StateRenameProject` - Rename existing project
-- `StateDeleteConfirm` - Delete confirmation dialog
-- `StateIDEMenu` - IDE selection (Claude/VSCode/OpenCode)
+- `StateAddProject` - Add new project
+- `StateRenameProject` - Rename project
+- `StateDeleteConfirm` - Delete confirmation
+- `StateIDEMenu` - IDE selection menu
 - `StateViewDetail` - View project details
-- `StateEditDescription` - Edit project description
+- `StateEditDescription` - Edit description
 - `StateSearch` - Search/filter projects
+- `StateBatchAddProject` - Batch add projects
 
 **Model Provider Management:**
 - `StateProviderList` - Provider configuration list
@@ -76,11 +92,23 @@ The `Model` in `internal/ui/model.go` uses a state machine pattern:
 
 ### Key Types
 
+**Data Models** (in `internal/models/`):
 - `Project`: ID, Path, Alias, Description, CreatedAt, LastOpened, OpenCount
 - `ProjectStore`: CRUD operations, Search, SortByLastOpened
 - `ModelProvider`: ID, Name, BaseURL, APIKey, Model, Active
 - `ModelProviderStore`: Provider management with active provider tracking
-- `IDEExecutor` in `internal/commands/executor.go`: Opens projects in Claude/VSCode/OpenCode
+- `IDEExecutor`: Opens projects in Claude/VSCode/OpenCode
+
+**UI Components** (in `internal/ui/components/`):
+- `AppModel`: Central router with state management
+- `PageModel`: Interface for page implementations
+- `ProjectListPage`: Project list with search, filter, IDE launch
+- `ProviderListPage`: Provider configuration management
+- `SearchPage`: Full-text project search
+- `BatchAddPage`: Batch project import from ~/.claude/projects
+- `ModalManager`: Stack-based modal dialog management
+- `ToastManager`: Notification queue with auto-dismiss
+- `StatusBar`: Contextual status display
 
 ### TUI Framework
 
@@ -164,53 +192,10 @@ go test ./...                         # Run tests
 
 - When fixing UI-related issues, test incrementally after each change to catch layout/alignment problems early
 
-## Snapshot Testing (Regression Testing)
+## UI Development (Debugging)
 
-The project uses Golden File snapshot testing for UI regression prevention.
-
-### Test Files
-- `internal/ui/snapshot_test.go` - Main snapshot test file
-- `internal/ui/testdata/*.golden` - Golden file snapshots
-
-### Run Tests
-```bash
-# Run all UI tests
-go test -v ./internal/ui/...
-
-# Run snapshot tests only
-go test -v ./internal/ui/... -run TestViewSnapshot
-
-# Update snapshots (after intentional UI changes)
-go test -v ./internal/ui/... -run TestViewSnapshot -update
-```
-
-### Test Coverage
-- **Views**: List views (empty, with projects), add project form, provider list with tips
-- **Tip/Error messages**: Activation feedback, error display
-- **Layout**: Help text alignment, dialog borders
-
-### Important Rules
-1. **Do NOT use `-update` flag casually** - it overwrites golden files, hiding real regressions
-2. **Test does NOT modify config files** - activation tests simulate state without calling `WriteToClaudeSettings`
-3. **Fixed terminal size** - tests use 80x24 to ensure consistent rendering
-4. **Dynamic content normalization** - timestamps and counts are replaced with placeholders
-
-### Adding New Snapshot Tests
-```go
-{
-    name: "new_view",
-    setup: func(m *Model) {
-        m.state = StateXXX
-        // setup state...
-    },
-    golden: "new_view",
-},
-```
-
-### Notes on lipgloss.Place
-- `lipgloss.Place` alignment can behave differently in tests vs real terminal
-- Prefer standard layout composition over Place for reliability
-- Always run tests after changes to catch regressions
+- When fixing UI-related issues, test incrementally after each change to catch layout/alignment problems early
+- Use the `-d` flag to enable debug mode which shows state information at the bottom of the screen
 
 ## Problem Analysis Framework
 

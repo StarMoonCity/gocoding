@@ -10,7 +10,7 @@ import (
 	"gocoding/internal/config"
 	"gocoding/internal/models"
 	"gocoding/internal/store"
-	"gocoding/internal/ui"
+	"gocoding/internal/ui/components"
 )
 
 func main() {
@@ -38,15 +38,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	m := ui.NewModel(projectStore)
-	m.SetProviderStore(providerStore)
+	// 使用新的 AppModel
+	m := components.NewAppModel(projectStore, providerStore)
 
 	// 解析命令行标志
 	providerMode := flag.Bool("p", false, "直接打开模型配置界面")
 	debugMode := flag.Bool("d", false, "开启调试模式")
 	flag.Parse()
 	if *providerMode {
-		m.SetState(ui.StateProviderList)
+		m.SwitchPage(m.ProviderPage())
 	}
 	if *debugMode {
 		m.SetDebugMode(true)

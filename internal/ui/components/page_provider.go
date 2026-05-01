@@ -1151,10 +1151,11 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 
 	selectorWidth := lipgloss.Width(selector)
 	activeWidth := lipgloss.Width(activeTag)
-	nameWidth := max(20, m.Width()) - selectorWidth
+	nameWidth := m.Width() - selectorWidth
 	if activeWidth > 0 {
 		nameWidth -= activeWidth + 1
 	}
+	nameWidth = min(nameWidth, 40) // 最大 40，防止溢出
 	nameWidth = max(8, nameWidth)
 
 	name := provider.Name
@@ -1198,8 +1199,13 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	if !provider.Active {
 		infoColor = ui.ForegroundDim
 	}
-	infoPrefix := lipgloss.NewStyle().Foreground(ui.MutedText).Width(selectorWidth).Render("")
-	secondLine := infoPrefix + lipgloss.NewStyle().Foreground(infoColor).Width(max(20, m.Width())-selectorWidth).Render(infoText)
+	// selector 空白对齐
+	selectorSpaces := strings.Repeat(" ", selectorWidth)
+	availableWidth := m.Width() - selectorWidth
+	if lipgloss.Width(infoText) > availableWidth {
+		infoText = infoText[:availableWidth-3] + "..."
+	}
+	secondLine := lipgloss.NewStyle().Foreground(infoColor).Render(selectorSpaces + infoText)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,

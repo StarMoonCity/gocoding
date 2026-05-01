@@ -106,28 +106,30 @@ func (p *BatchAddPage) View(width, height int) string {
 	p.width = width
 	p.height = height
 
-	dialogWidth := min(60, max(45, int(float64(p.width)*0.75)))
+	dialogWidth := min(70, max(50, int(float64(p.width)*0.8)))
+	contentWidth := dialogWidth - 8 // 减去 padding 和 border
 
 	var items []string
 	for i, path := range p.projects {
 		isSelected := p.selected[i]
 		cursor := "  "
-		isHovered := i == p.hoverIndex()
 
 		if i == p.cursor {
 			cursor = lipgloss.NewStyle().Foreground(ui.PrimaryColor).Render("▸ ")
-		} else if isHovered {
-			cursor = "  "
 		}
 		checkbox := "[ ]"
 		if isSelected {
 			checkbox = lipgloss.NewStyle().Foreground(ui.SuccessColor).Render("[×]")
 		}
 
-		itemText := cursor + checkbox + "  " + path
-		if isHovered && i != p.cursor {
+		// 截断长路径，确保不换行
+		maxPathWidth := contentWidth - lipgloss.Width(cursor+checkbox+"  ")
+		truncatedPath := truncatePath(path, maxPathWidth)
+
+		itemText := cursor + checkbox + "  " + truncatedPath
+		// 高亮当前选中行
+		if i == p.cursor {
 			itemStyle := lipgloss.NewStyle().
-				Foreground(ui.PrimaryDim).
 				Background(ui.BackgroundHover)
 			itemText = itemStyle.Render(itemText)
 		}
@@ -146,6 +148,9 @@ func (p *BatchAddPage) View(width, height int) string {
 		statusText = lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render(fmt.Sprintf("已选择: %d/%d", selectedCount, len(p.projects)))
 	}
 
+	// 渲染快捷键说明（彩色样式）
+	helpText := p.renderHelpText()
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
@@ -162,16 +167,70 @@ func (p *BatchAddPage) View(width, height int) string {
 				"",
 				lipgloss.JoinVertical(lipgloss.Left, items...),
 				"",
-				statusText,
+				lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Right).Render(statusText),
 				"",
-				lipgloss.NewStyle().
-					Foreground(ui.SecondaryText).
-					Render("[Space/点击] 选择  ·  [↑↓] 移动  ·  [Enter] 确认  ·  [Esc] 取消"),
+				helpText,
 			),
 		)
 
 	// 上下左右居中
 	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+}
+
+// truncatePath 截断长路径，保持可读性
+func truncatePath(path string, maxWidth int) string {
+	if lipgloss.Width(path) <= maxWidth {
+		return path
+	}
+
+	// 使用 ... 截断中间部分
+	prefix := "..."
+	if maxWidth <= len(prefix)+10 {
+		// 宽度太小，直接截断末尾
+		runes := []rune(path)
+		if len(runes) > maxWidth-1 {
+			return string(runes[:maxWidth-1]) + "…"
+		}
+		return path
+	}
+
+	// 保留开头和结尾，中间用 ... 连接
+	keepLen := (maxWidth - len(prefix)) / 2
+	start := path[:keepLen]
+	end := path[len(path)-keepLen:]
+	return start + prefix + end
+}
+
+// renderHelpText 渲染帮助文本（彩色样式）
+func (p *BatchAddPage) renderHelpText() string {
+	sep := lipgloss.NewStyle().Foreground(ui.PrimaryDim).Render("·")
+
+	return lipgloss.NewStyle().
+		Foreground(ui.SecondaryText).
+		Render(
+			lipgloss.JoinHorizontal(
+				lipgloss.Center,
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[Space]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("选择"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyNavStyle.Render("[↑↓]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("移动"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[Enter]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("确认"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyQuitStyle.Render("[Esc]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("取消"),
+				),
+			),
+		)
 }
 
 // HandleMouse 处理鼠标消息
@@ -197,16 +256,6 @@ func (p *BatchAddPage) HandleMouse(msg tea.MouseMsg) {
 			p.cursor++
 		}
 	}
-}
-
-// hoverIndex 获取悬停索引
-func (p *BatchAddPage) hoverIndex() int {
-	listStartY := 4
-	listEndY := p.height - 7
-	if p.cursor >= listStartY && p.cursor < listEndY {
-		return p.cursor - listStartY
-	}
-	return -1
 }
 
 // filterSelectedCount 返回选中的项目数量

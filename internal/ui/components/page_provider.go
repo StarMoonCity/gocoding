@@ -451,7 +451,7 @@ func (p *ProviderListPage) viewAdd() string {
 
 	// 构建对话框底部内容
 	var bottomLines []string
-	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认 · [↑/↓] 滚动 · [Tab/Shift+Tab] 切换 · [Esc] 取消"))
+	bottomLines = append(bottomLines, p.renderFormHelpText())
 	if errDisplay != "" {
 		bottomLines = append(bottomLines, errDisplay)
 	}
@@ -579,7 +579,7 @@ func (p *ProviderListPage) viewEdit() string {
 
 	// 构建对话框底部内容
 	var bottomLines []string
-	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认 · [↑/↓] 滚动 · [Tab/Shift+Tab] 切换 · [Esc] 取消"))
+	bottomLines = append(bottomLines, p.renderFormHelpText())
 	if errDisplay != "" {
 		bottomLines = append(bottomLines, errDisplay)
 	}
@@ -998,28 +998,41 @@ func (p *ProviderListPage) syncListItems() {
 
 // renderHelpText 渲染帮助文本
 func (p *ProviderListPage) renderHelpText() string {
+	sep := lipgloss.NewStyle().Foreground(ui.PrimaryDim).Render("│")
+
 	return lipgloss.NewStyle().
 		Foreground(ui.SecondaryText).
 		Width(p.providerListWidth()).
+		Align(lipgloss.Center).
 		Render(
-			lipgloss.JoinVertical(
+			lipgloss.JoinHorizontal(
 				lipgloss.Center,
-				lipgloss.JoinHorizontal(
-					lipgloss.Left,
-					p.renderHelpItem("[k↑/j↓]", "选择", ui.HelpKeyNavStyle),
-					"  ",
-					p.renderHelpItem("[N]", "新增", ui.HelpKeyActionStyle),
-					"  ",
-					p.renderHelpItem("[E]", "编辑", ui.HelpKeyActionStyle),
-					"  ",
-					p.renderHelpItem("[D]", "删除", ui.HelpKeyDangerStyle),
-					"  ",
-					p.renderHelpItem("[A]", "激活", ui.HelpKeyActionStyle),
+				sep,
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyNavStyle.Render("↑↓"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("导航"),
 				),
-				lipgloss.JoinHorizontal(
-					lipgloss.Left,
-					p.renderHelpItem("[Esc]", "退出", ui.HelpKeyQuitStyle),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[N]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("新增"),
 				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[E]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("编辑"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyDangerStyle.Render("[D]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("删除"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[A]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("激活"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyQuitStyle.Render("[Esc]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("退出"),
+				),
+				sep,
 			),
 		)
 }
@@ -1031,6 +1044,38 @@ func (p *ProviderListPage) renderHelpItem(key, label string, keyStyle lipgloss.S
 		" ",
 		lipgloss.NewStyle().Foreground(ui.SecondaryText).Render(label),
 	)
+}
+
+// renderFormHelpText 渲染表单页帮助文本
+func (p *ProviderListPage) renderFormHelpText() string {
+	sep := lipgloss.NewStyle().Foreground(ui.PrimaryDim).Render("·")
+
+	return lipgloss.NewStyle().
+		Foreground(ui.SecondaryText).
+		Render(
+			lipgloss.JoinHorizontal(
+				lipgloss.Center,
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[Enter]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("确认"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyNavStyle.Render("[↑/↓]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("滚动"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyNavStyle.Render("[Tab/Shift+Tab]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("切换"),
+				),
+				" "+sep+" ",
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyQuitStyle.Render("[Esc]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("取消"),
+				),
+			),
+		)
 }
 
 // providerDialogWidth 计算对话框宽度

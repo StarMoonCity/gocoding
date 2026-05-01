@@ -451,7 +451,7 @@ func (p *ProviderListPage) viewAdd() string {
 
 	// 构建对话框底部内容
 	var bottomLines []string
-	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"))
+	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认 · [↑/↓] 滚动 · [Tab/Shift+Tab] 切换 · [Esc] 取消"))
 	if errDisplay != "" {
 		bottomLines = append(bottomLines, errDisplay)
 	}
@@ -579,7 +579,7 @@ func (p *ProviderListPage) viewEdit() string {
 
 	// 构建对话框底部内容
 	var bottomLines []string
-	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"))
+	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认 · [↑/↓] 滚动 · [Tab/Shift+Tab] 切换 · [Esc] 取消"))
 	if errDisplay != "" {
 		bottomLines = append(bottomLines, errDisplay)
 	}

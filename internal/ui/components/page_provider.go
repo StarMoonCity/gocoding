@@ -393,18 +393,20 @@ func (p *ProviderListPage) viewAdd() string {
 		allLines = append(allLines, style.Render(inp.input.View()))
 	}
 
-	allLines = append(allLines, "")
-	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
-
+	// 错误消息（单独处理，不计入滚动内容）
+	var errDisplay string
 	if p.errMsg != "" {
-		allLines = append(allLines, "")
-		allLines = append(allLines, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
+		errDisplay = ui.ErrorBoxStyle.Render("✗ "+p.errMsg)
 	}
 
 	// 计算可视区域和滚动偏移
 	headerLines := 2 // 标题 + 空行
-	footerLines := 2  // 底部提示 + 底部空行
-	contentHeight := dialogHeight - headerLines - footerLines
+	helpLines := 1    // 底部帮助行
+	errLines := 0
+	if errDisplay != "" {
+		errLines = 2 // 错误消息占 2 行
+	}
+	contentHeight := dialogHeight - headerLines - helpLines - errLines
 
 	// 计算当前焦点的行号
 	// 每个输入项结构: 空行(label) + 标签行 + 输入框行 + 空行(下一个之前)
@@ -447,6 +449,13 @@ func (p *ProviderListPage) viewAdd() string {
 
 	content := lipgloss.JoinVertical(lipgloss.Left, visibleLines...)
 
+	// 构建对话框底部内容
+	var bottomLines []string
+	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"))
+	if errDisplay != "" {
+		bottomLines = append(bottomLines, errDisplay)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Height(dialogHeight).
@@ -460,7 +469,7 @@ func (p *ProviderListPage) viewAdd() string {
 				lipgloss.Center,
 				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"),
 				content,
-				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"),
+				lipgloss.JoinVertical(lipgloss.Center, bottomLines...),
 			),
 		)
 
@@ -512,18 +521,20 @@ func (p *ProviderListPage) viewEdit() string {
 		allLines = append(allLines, style.Render(inp.input.View()))
 	}
 
-	allLines = append(allLines, "")
-	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
-
+	// 错误消息（单独处理，不计入滚动内容）
+	var errDisplay string
 	if p.errMsg != "" {
-		allLines = append(allLines, "")
-		allLines = append(allLines, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
+		errDisplay = ui.ErrorBoxStyle.Render("✗ "+p.errMsg)
 	}
 
 	// 计算可视区域和滚动偏移
 	headerLines := 2 // 标题 + 空行
-	footerLines := 2 // 底部提示 + 底部空行
-	contentHeight := dialogHeight - headerLines - footerLines
+	helpLines := 1    // 底部帮助行
+	errLines := 0
+	if errDisplay != "" {
+		errLines = 2 // 错误消息占 2 行
+	}
+	contentHeight := dialogHeight - headerLines - helpLines - errLines
 
 	// 计算当前焦点的行号
 	// 每个输入项结构: 空行(label) + 标签行 + 输入框行 + 空行(下一个之前)
@@ -566,6 +577,13 @@ func (p *ProviderListPage) viewEdit() string {
 
 	content := lipgloss.JoinVertical(lipgloss.Left, visibleLines...)
 
+	// 构建对话框底部内容
+	var bottomLines []string
+	bottomLines = append(bottomLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"))
+	if errDisplay != "" {
+		bottomLines = append(bottomLines, errDisplay)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Height(dialogHeight).
@@ -579,7 +597,7 @@ func (p *ProviderListPage) viewEdit() string {
 				lipgloss.Center,
 				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"),
 				content,
-				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"),
+				lipgloss.JoinVertical(lipgloss.Center, bottomLines...),
 			),
 		)
 

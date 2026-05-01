@@ -42,6 +42,7 @@ const (
 	ProviderFocusNonessential
 	ProviderFocusNonstreaming
 	ProviderFocusEffort
+	ProviderFocusClaudeCodeEffort
 	ProviderFocusCount
 )
 
@@ -70,6 +71,7 @@ type ProviderListPage struct {
 	nonessentialInput      textinput.Model
 	nonstreamingInput      textinput.Model
 	effortInput            textinput.Model
+	claudeCodeEffortInput  textinput.Model
 	inputFocus             ProviderFocus
 
 	// 删除确认
@@ -140,6 +142,9 @@ func (p *ProviderListPage) initInputs() {
 
 	p.effortInput = textinput.New()
 	p.effortInput.Placeholder = "max/high/medium/low"
+
+	p.claudeCodeEffortInput = textinput.New()
+	p.claudeCodeEffortInput.Placeholder = "high/medium/low (Claude Code)"
 }
 
 // SetApp 设置 AppModel 引用
@@ -367,6 +372,7 @@ func (p *ProviderListPage) viewAdd() string {
 		{ProviderFocusNonessential, "禁用非必要流量 (1/空)", p.nonessentialInput, false},
 		{ProviderFocusNonstreaming, "禁用非流式回退 (1/空)", p.nonstreamingInput, false},
 		{ProviderFocusEffort, "推理力度 (max/high/medium/low)", p.effortInput, false},
+		{ProviderFocusClaudeCodeEffort, "Claude Code 推理力度 (high/medium/low)", p.claudeCodeEffortInput, false},
 	}
 
 	// 构建完整内容用于计算
@@ -401,10 +407,12 @@ func (p *ProviderListPage) viewAdd() string {
 	contentHeight := dialogHeight - headerLines - footerLines
 
 	// 计算当前焦点的行号
+	// 每个输入项结构: 空行(label) + 标签行 + 输入框行 + 空行(下一个之前)
+	// 第 i 个输入项开始行: 1 + i*4（0是标题行）
 	focusRow := 0
 	for i, inp := range inputs {
 		if p.inputFocus == inp.focus {
-			focusRow = 1 + i*3 // 空行 offset
+			focusRow = 1 + i*4
 			break
 		}
 	}
@@ -518,10 +526,12 @@ func (p *ProviderListPage) viewEdit() string {
 	contentHeight := dialogHeight - headerLines - footerLines
 
 	// 计算当前焦点的行号
+	// 每个输入项结构: 空行(label) + 标签行 + 输入框行 + 空行(下一个之前)
+	// 第 i 个输入项开始行: 1 + i*4（0是标题行）
 	focusRow := 0
 	for i, inp := range inputs {
 		if p.inputFocus == inp.focus {
-			focusRow = 1 + i*3 // 空行 offset
+			focusRow = 1 + i*4
 			break
 		}
 	}
@@ -640,6 +650,7 @@ func (p *ProviderListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		p.resetInputs()
 		p.inputFocus = ProviderFocusName
 		p.nameInput.Focus()
+		p.formScrollOffset = 0
 		p.errMsg = ""
 		return textinput.Blink
 	case "e":
@@ -647,6 +658,7 @@ func (p *ProviderListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.loadProviderToInputs(p.getSelectedProvider())
 			p.state = ProviderStateEdit
 			p.editingID = p.getSelectedProvider().ID
+			p.formScrollOffset = 0
 			return textinput.Blink
 		}
 	case "d":
@@ -675,6 +687,7 @@ func (p *ProviderListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.loadProviderToInputs(p.getSelectedProvider())
 			p.state = ProviderStateEdit
 			p.editingID = p.getSelectedProvider().ID
+			p.formScrollOffset = 0
 			return textinput.Blink
 		}
 	case "esc":
@@ -703,6 +716,7 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		nonessential := p.nonessentialInput.Value()
 		nonstreaming := p.nonstreamingInput.Value()
 		effort := p.effortInput.Value()
+		claudeCodeEffort := p.claudeCodeEffortInput.Value()
 
 		if name == "" {
 			p.errMsg = "配置名称不能为空"
@@ -718,20 +732,21 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		}
 
 		provider := models.ModelProvider{
-			ID:                   models.GenerateProviderID(),
-			Name:                 name,
-			BaseURL:              baseURL,
-			APIKey:               apiKey,
-			Model:                model,
-			ThinkingModel:        thinkingModel,
-			DefaultHaikuModel:    defaultHaiku,
-			DefaultSonnetModel:   defaultSonnet,
-			DefaultOpusModel:     defaultOpus,
-			SubagentModel:        subagent,
-			DisableNonessential:  nonessential,
-			DisableNonstreaming:  nonstreaming,
-			EffortLevel:          effort,
-			CreatedAt:            time.Now(),
+			ID:                      models.GenerateProviderID(),
+			Name:                    name,
+			BaseURL:                 baseURL,
+			APIKey:                  apiKey,
+			Model:                   model,
+			ThinkingModel:           thinkingModel,
+			DefaultHaikuModel:       defaultHaiku,
+			DefaultSonnetModel:     defaultSonnet,
+			DefaultOpusModel:        defaultOpus,
+			SubagentModel:           subagent,
+			DisableNonessential:     nonessential,
+			DisableNonstreaming:     nonstreaming,
+			EffortLevel:             effort,
+			ClaudeCodeEffortLevel:   claudeCodeEffort,
+			CreatedAt:               time.Now(),
 		}
 
 		p.store.Add(provider)
@@ -779,6 +794,7 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		nonessential := p.nonessentialInput.Value()
 		nonstreaming := p.nonstreamingInput.Value()
 		effort := p.effortInput.Value()
+		claudeCodeEffort := p.claudeCodeEffortInput.Value()
 
 		if name == "" {
 			p.errMsg = "配置名称不能为空"
@@ -794,10 +810,11 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			provider := p.store.Get(p.editingID)
 			if provider != nil {
 				apiKey = provider.APIKey
+				claudeCodeEffort = provider.ClaudeCodeEffortLevel
 			}
 		}
 
-		p.store.Update(p.editingID, name, baseURL, apiKey, model, thinkingModel, defaultHaiku, defaultSonnet, defaultOpus, subagent, nonessential, nonstreaming, effort)
+		p.store.Update(p.editingID, name, baseURL, apiKey, model, thinkingModel, defaultHaiku, defaultSonnet, defaultOpus, subagent, nonessential, nonstreaming, effort, claudeCodeEffort)
 		p.updateListItems()
 		p.state = ProviderStateList
 
@@ -863,6 +880,7 @@ func (p *ProviderListPage) updateFocus() {
 	p.nonessentialInput.Blur()
 	p.nonstreamingInput.Blur()
 	p.effortInput.Blur()
+	p.claudeCodeEffortInput.Blur()
 
 	switch p.inputFocus {
 	case ProviderFocusName:
@@ -889,6 +907,8 @@ func (p *ProviderListPage) updateFocus() {
 		p.nonstreamingInput.Focus()
 	case ProviderFocusEffort:
 		p.effortInput.Focus()
+	case ProviderFocusClaudeCodeEffort:
+		p.claudeCodeEffortInput.Focus()
 	}
 }
 
@@ -917,6 +937,8 @@ func (p *ProviderListPage) resetInputs() {
 	p.nonstreamingInput.Placeholder = "1=禁用非流式回退"
 	p.effortInput.Reset()
 	p.effortInput.Placeholder = "max/high/medium/low"
+	p.claudeCodeEffortInput.Reset()
+	p.claudeCodeEffortInput.Placeholder = "high/medium/low (Claude Code)"
 }
 
 func (p *ProviderListPage) loadProviderToInputs(provider *models.ModelProvider) {
@@ -934,6 +956,7 @@ func (p *ProviderListPage) loadProviderToInputs(provider *models.ModelProvider) 
 	p.nonessentialInput.SetValue(provider.DisableNonessential)
 	p.nonstreamingInput.SetValue(provider.DisableNonstreaming)
 	p.effortInput.SetValue(provider.EffortLevel)
+	p.claudeCodeEffortInput.SetValue(provider.ClaudeCodeEffortLevel)
 	p.inputFocus = ProviderFocusName
 	p.errMsg = ""
 }

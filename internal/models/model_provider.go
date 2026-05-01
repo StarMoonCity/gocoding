@@ -23,6 +23,7 @@ type ModelProvider struct {
 	DisableNonessential      string    `json:"disable_nonessential_traffic"` // 禁用非必要流量 (1/空)
 	DisableNonstreaming      string    `json:"disable_nonstreaming_fallback"` // 禁用非流式回退 (1/空)
 	EffortLevel              string    `json:"effort_level"`                 // 推理力度 (max/high/medium/low)
+	ClaudeCodeEffortLevel    string    `json:"claude_code_effort_level"`     // Claude Code 推理力度 (high/medium/low)
 	Active                   bool      `json:"active"`                       // 是否激活
 	CreatedAt                time.Time `json:"created_at"`
 }
@@ -74,7 +75,7 @@ func (s *ModelProviderStore) Get(id string) *ModelProvider {
 }
 
 // Update 更新配置
-func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel string) {
+func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel, claudeCodeEffortLevel string) {
 	idx, ok := s.index[id]
 	if !ok {
 		return
@@ -91,6 +92,7 @@ func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingMo
 	s.Providers[idx].DisableNonessential = disableNonessential
 	s.Providers[idx].DisableNonstreaming = disableNonstreaming
 	s.Providers[idx].EffortLevel = effortLevel
+	s.Providers[idx].ClaudeCodeEffortLevel = claudeCodeEffortLevel
 }
 
 // SetActive 设置激活配置

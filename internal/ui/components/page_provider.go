@@ -78,6 +78,9 @@ type ProviderListPage struct {
 	// 错误/提示消息
 	errMsg string
 	tipMsg string
+
+	// 滚动相关
+	formScrollOffset int // 当前滚动偏移（行数）
 }
 
 // NewProviderListPage 创建配置列表页面
@@ -341,6 +344,7 @@ func (p *ProviderListPage) viewList() string {
 
 func (p *ProviderListPage) viewAdd() string {
 	dialogWidth := min(p.width-4, max(50, int(float64(p.width)*0.8)))
+	dialogHeight := max(15, p.height-4)
 
 	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
 	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
@@ -365,8 +369,9 @@ func (p *ProviderListPage) viewAdd() string {
 		{ProviderFocusEffort, "推理力度 (max/high/medium/low)", p.effortInput, false},
 	}
 
-	var items []string
-	items = append(items, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"))
+	// 构建完整内容用于计算
+	var allLines []string
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"))
 
 	for _, inp := range inputs {
 		style := inactiveInput
@@ -377,34 +382,86 @@ func (p *ProviderListPage) viewAdd() string {
 		if inp.required {
 			requiredMark = " *"
 		}
-		items = append(items, "")
-		items = append(items, lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render(inp.label+requiredMark))
-		items = append(items, style.Render(inp.input.View()))
+		allLines = append(allLines, "")
+		allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render(inp.label+requiredMark))
+		allLines = append(allLines, style.Render(inp.input.View()))
 	}
 
-	items = append(items, "")
-	items = append(items, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
+	allLines = append(allLines, "")
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
 
 	if p.errMsg != "" {
-		items = append(items, "")
-		items = append(items, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
+		allLines = append(allLines, "")
+		allLines = append(allLines, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
 	}
+
+	// 计算可视区域和滚动偏移
+	headerLines := 2 // 标题 + 空行
+	footerLines := 2  // 底部提示 + 底部空行
+	contentHeight := dialogHeight - headerLines - footerLines
+
+	// 计算当前焦点的行号
+	focusRow := 0
+	for i, inp := range inputs {
+		if p.inputFocus == inp.focus {
+			focusRow = 1 + i*3 // 空行 offset
+			break
+		}
+	}
+
+	// 自动滚动：确保焦点行在可视区域内
+	visibleStart := p.formScrollOffset
+	visibleEnd := visibleStart + contentHeight - 1
+
+	if focusRow < visibleStart {
+		p.formScrollOffset = focusRow
+	} else if focusRow > visibleEnd {
+		p.formScrollOffset = focusRow - contentHeight + 1
+	}
+
+	// 确保滚动偏移在有效范围内
+	maxScroll := len(allLines) - contentHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if p.formScrollOffset > maxScroll {
+		p.formScrollOffset = maxScroll
+	}
+	if p.formScrollOffset < 0 {
+		p.formScrollOffset = 0
+	}
+
+	// 只渲染可见行
+	visibleLines := allLines[p.formScrollOffset:]
+	if len(visibleLines) > contentHeight {
+		visibleLines = visibleLines[:contentHeight]
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, visibleLines...)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
+		Height(dialogHeight).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.AccentMagenta).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
-		Render(lipgloss.JoinVertical(lipgloss.Center, items...))
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"),
+				content,
+				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"),
+			),
+		)
 
-	// 上下左右居中
 	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
 func (p *ProviderListPage) viewEdit() string {
 	dialogWidth := min(p.width-4, max(50, int(float64(p.width)*0.8)))
+	dialogHeight := max(15, p.height-4)
 
 	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
 	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
@@ -429,8 +486,9 @@ func (p *ProviderListPage) viewEdit() string {
 		{ProviderFocusEffort, "推理力度 (max/high/medium/low)", p.effortInput, false},
 	}
 
-	var items []string
-	items = append(items, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"))
+	// 构建完整内容用于计算
+	var allLines []string
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"))
 
 	for _, inp := range inputs {
 		style := inactiveInput
@@ -441,29 +499,80 @@ func (p *ProviderListPage) viewEdit() string {
 		if inp.required {
 			requiredMark = " *"
 		}
-		items = append(items, "")
-		items = append(items, lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render(inp.label+requiredMark))
-		items = append(items, style.Render(inp.input.View()))
+		allLines = append(allLines, "")
+		allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render(inp.label+requiredMark))
+		allLines = append(allLines, style.Render(inp.input.View()))
 	}
 
-	items = append(items, "")
-	items = append(items, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
+	allLines = append(allLines, "")
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab/Shift+Tab] 切换  ·  [Esc] 取消"))
 
 	if p.errMsg != "" {
-		items = append(items, "")
-		items = append(items, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
+		allLines = append(allLines, "")
+		allLines = append(allLines, ui.ErrorBoxStyle.Render("✗ "+p.errMsg))
 	}
+
+	// 计算可视区域和滚动偏移
+	headerLines := 2 // 标题 + 空行
+	footerLines := 2 // 底部提示 + 底部空行
+	contentHeight := dialogHeight - headerLines - footerLines
+
+	// 计算当前焦点的行号
+	focusRow := 0
+	for i, inp := range inputs {
+		if p.inputFocus == inp.focus {
+			focusRow = 1 + i*3 // 空行 offset
+			break
+		}
+	}
+
+	// 自动滚动：确保焦点行在可视区域内
+	visibleStart := p.formScrollOffset
+	visibleEnd := visibleStart + contentHeight - 1
+
+	if focusRow < visibleStart {
+		p.formScrollOffset = focusRow
+	} else if focusRow > visibleEnd {
+		p.formScrollOffset = focusRow - contentHeight + 1
+	}
+
+	// 确保滚动偏移在有效范围内
+	maxScroll := len(allLines) - contentHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if p.formScrollOffset > maxScroll {
+		p.formScrollOffset = maxScroll
+	}
+	if p.formScrollOffset < 0 {
+		p.formScrollOffset = 0
+	}
+
+	// 只渲染可见行
+	visibleLines := allLines[p.formScrollOffset:]
+	if len(visibleLines) > contentHeight {
+		visibleLines = visibleLines[:contentHeight]
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, visibleLines...)
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
+		Height(dialogHeight).
 		Border(ui.NeonBorder).
 		BorderForeground(ui.AccentMagenta).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
-		Render(lipgloss.JoinVertical(lipgloss.Center, items...))
+		Render(
+			lipgloss.JoinVertical(
+				lipgloss.Center,
+				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"),
+				content,
+				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[↑/↓] 滚动  ·  [Tab] 切换  ·  [Esc] 取消"),
+			),
+		)
 
-	// 上下左右居中
 	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
 }
 
@@ -643,6 +752,12 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.inputFocus--
 		}
 		p.updateFocus()
+	case "up", "k":
+		if p.formScrollOffset > 0 {
+			p.formScrollOffset--
+		}
+	case "down", "j":
+		p.formScrollOffset++
 	case "esc":
 		p.state = ProviderStateList
 	}
@@ -700,6 +815,12 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.inputFocus--
 		}
 		p.updateFocus()
+	case "up", "k":
+		if p.formScrollOffset > 0 {
+			p.formScrollOffset--
+		}
+	case "down", "j":
+		p.formScrollOffset++
 	case "esc":
 		p.state = ProviderStateList
 	}

@@ -740,10 +740,16 @@ func (p *ProjectListPage) handleRenameKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 func (p *ProjectListPage) handleDeleteConfirmKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
+	case "left", "h":
+		p.hoverButton = 0
+	case "right", "l":
+		p.hoverButton = 1
 	case "y", "enter":
-		current := p.list.SelectedItem().(listItem)
-		p.store.Remove(current.project.ID)
-		p.syncListItems()
+		if p.hoverButton == 1 {
+			current := p.list.SelectedItem().(listItem)
+			p.store.Remove(current.project.ID)
+			p.syncListItems()
+		}
 		p.state = ProjectStateList
 	case "n", "esc":
 		p.state = ProjectStateList

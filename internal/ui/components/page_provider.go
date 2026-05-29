@@ -864,6 +864,10 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 func (p *ProviderListPage) handleDeleteConfirmKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
+	case "left", "h":
+		p.hoverButton = 0
+	case "right", "l":
+		p.hoverButton = 1
 	case "y", "enter":
 		if p.hoverButton == 1 {
 			provider := p.getSelectedProvider()

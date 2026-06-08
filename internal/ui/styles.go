@@ -334,10 +334,10 @@ var ProviderFormStyle = lipgloss.NewStyle().
 	BorderForeground(PrimaryColor).
 	Padding(1, 2)
 
-// Provider 列表项样式
+// Provider 列表项样式 - 与面板背景一致，避免深色色块
 var ProviderItemStyle = lipgloss.NewStyle().
 	Foreground(Foreground).
-	Background(Background).
+	Background(BackgroundSurface).
 	Padding(0, 1)
 
 // Provider 选中项样式 - 霓虹发光

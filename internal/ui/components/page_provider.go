@@ -1209,7 +1209,12 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	if lipgloss.Width(infoText) > availableWidth {
 		infoText = infoText[:availableWidth-3] + "..."
 	}
-	secondLine := lipgloss.NewStyle().Foreground(infoColor).Render(selectorSpaces + infoText)
+	// 第二行背景与面板一致，避免与第一行有色差
+	secondLine := lipgloss.NewStyle().
+		Foreground(infoColor).
+		Background(ui.BackgroundSurface).
+		Width(selectorWidth + lipgloss.Width(infoText)).
+		Render(selectorSpaces + infoText)
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,

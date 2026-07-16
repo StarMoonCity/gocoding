@@ -219,6 +219,7 @@ func TestModelProviderStore_Update(t *testing.T) {
 		"1",
 		"max",
 		"high",
+		"1000000",
 	)
 
 	p := store.Get("id1")
@@ -254,7 +255,7 @@ func TestModelProviderStore_Update(t *testing.T) {
 func TestModelProviderStore_UpdateNonExistent(t *testing.T) {
 	store := NewModelProviderStore()
 	// 更新不存在的配置不应 panic
-	store.Update("non-existent", "name", "url", "key", "model", "thinking", "haiku", "sonnet", "opus", "", "", "", "", "")
+	store.Update("non-existent", "name", "url", "key", "model", "thinking", "haiku", "sonnet", "opus", "", "", "", "", "", "")
 }
 
 func TestModelProviderStore_SetActive(t *testing.T) {
@@ -650,7 +651,7 @@ func TestModelProviderStore_GetAfterUpdate(t *testing.T) {
 	store := NewModelProviderStore()
 	store.Add(ModelProvider{ID: "id1", Name: "Original", BaseURL: "https://orig.com", APIKey: "key", Model: "m1"})
 
-	store.Update("id1", "Updated", "https://updated.com", "new-key", "new-model", "", "", "", "", "", "", "", "", "")
+	store.Update("id1", "Updated", "https://updated.com", "new-key", "new-model", "", "", "", "", "", "", "", "", "", "")
 
 	p := store.Get("id1")
 	if p == nil {

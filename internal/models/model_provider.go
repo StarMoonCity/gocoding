@@ -24,6 +24,7 @@ type ModelProvider struct {
 	DisableNonstreaming      string    `json:"disable_nonstreaming_fallback"` // 禁用非流式回退 (1/空)
 	EffortLevel              string    `json:"effort_level"`                 // 推理力度 (max/high/medium/low)
 	ClaudeCodeEffortLevel    string    `json:"claude_code_effort_level"`     // Claude Code 推理力度 (high/medium/low)
+	AutoCompactWindow        string    `json:"auto_compact_window"`          // 自动压缩上下文窗口阈值 (如 1000000)
 	Active                   bool      `json:"active"`                       // 是否激活
 	CreatedAt                time.Time `json:"created_at"`
 }
@@ -75,7 +76,7 @@ func (s *ModelProviderStore) Get(id string) *ModelProvider {
 }
 
 // Update 更新配置
-func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel, claudeCodeEffortLevel string) {
+func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingModel, defaultHaikuModel, defaultSonnetModel, defaultOpusModel, subagentModel, disableNonessential, disableNonstreaming, effortLevel, claudeCodeEffortLevel, autoCompactWindow string) {
 	idx, ok := s.index[id]
 	if !ok {
 		return
@@ -93,6 +94,7 @@ func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingMo
 	s.Providers[idx].DisableNonstreaming = disableNonstreaming
 	s.Providers[idx].EffortLevel = effortLevel
 	s.Providers[idx].ClaudeCodeEffortLevel = claudeCodeEffortLevel
+	s.Providers[idx].AutoCompactWindow = autoCompactWindow
 }
 
 // SetActive 设置激活配置

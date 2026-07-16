@@ -43,6 +43,7 @@ const (
 	ProviderFocusNonstreaming
 	ProviderFocusEffort
 	ProviderFocusClaudeCodeEffort
+	ProviderFocusAutoCompactWindow
 	ProviderFocusCount
 )
 
@@ -72,6 +73,7 @@ type ProviderListPage struct {
 	nonstreamingInput      textinput.Model
 	effortInput            textinput.Model
 	claudeCodeEffortInput  textinput.Model
+	autoCompactWindowInput textinput.Model
 	inputFocus             ProviderFocus
 
 	// 删除确认
@@ -145,6 +147,9 @@ func (p *ProviderListPage) initInputs() {
 
 	p.claudeCodeEffortInput = textinput.New()
 	p.claudeCodeEffortInput.Placeholder = "high/medium/low (Claude Code)"
+
+	p.autoCompactWindowInput = textinput.New()
+	p.autoCompactWindowInput.Placeholder = "Auto Compact Window (e.g. 1000000)"
 }
 
 // SetApp 设置 AppModel 引用
@@ -183,7 +188,7 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 	// 先更新组件（包括 textinput）
 	switch p.state {
 	case ProviderStateAdd, ProviderStateEdit:
-		var cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12 tea.Cmd
+		var cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13 tea.Cmd
 		p.nameInput, cmd1 = p.nameInput.Update(msg)
 		p.baseURLInput, cmd2 = p.baseURLInput.Update(msg)
 		p.apiKeyInput, cmd3 = p.apiKeyInput.Update(msg)
@@ -196,6 +201,7 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 		p.nonessentialInput, cmd10 = p.nonessentialInput.Update(msg)
 		p.nonstreamingInput, cmd11 = p.nonstreamingInput.Update(msg)
 		p.effortInput, cmd12 = p.effortInput.Update(msg)
+		p.autoCompactWindowInput, cmd13 = p.autoCompactWindowInput.Update(msg)
 
 		// 处理按键
 		switch msg := msg.(type) {
@@ -203,15 +209,15 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 			switch p.state {
 			case ProviderStateAdd:
 				if cmd := p.handleAddKeyMsg(msg); cmd != nil {
-					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12)...), true
+					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13)...), true
 				}
 			case ProviderStateEdit:
 				if cmd := p.handleEditKeyMsg(msg); cmd != nil {
-					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12)...), true
+					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13)...), true
 				}
 			}
 		}
-		return tea.Batch(cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12), true
+		return tea.Batch(cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13), true
 	}
 
 	// 处理按键
@@ -373,6 +379,7 @@ func (p *ProviderListPage) viewAdd() string {
 		{ProviderFocusNonstreaming, "禁用非流式回退 (1/空)", p.nonstreamingInput, false},
 		{ProviderFocusEffort, "推理力度 (max/high/medium/low)", p.effortInput, false},
 		{ProviderFocusClaudeCodeEffort, "Claude Code 推理力度 (high/medium/low)", p.claudeCodeEffortInput, false},
+		{ProviderFocusAutoCompactWindow, "自动压缩上下文窗口 (如 1000000)", p.autoCompactWindowInput, false},
 	}
 
 	// 构建完整内容用于计算
@@ -501,6 +508,8 @@ func (p *ProviderListPage) viewEdit() string {
 		{ProviderFocusNonessential, "禁用非必要流量 (1/空)", p.nonessentialInput, false},
 		{ProviderFocusNonstreaming, "禁用非流式回退 (1/空)", p.nonstreamingInput, false},
 		{ProviderFocusEffort, "推理力度 (max/high/medium/low)", p.effortInput, false},
+		{ProviderFocusClaudeCodeEffort, "Claude Code 推理力度 (high/medium/low)", p.claudeCodeEffortInput, false},
+		{ProviderFocusAutoCompactWindow, "自动压缩上下文窗口 (如 1000000)", p.autoCompactWindowInput, false},
 	}
 
 	// 构建完整内容用于计算
@@ -735,6 +744,7 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		nonstreaming := p.nonstreamingInput.Value()
 		effort := p.effortInput.Value()
 		claudeCodeEffort := p.claudeCodeEffortInput.Value()
+		autoCompactWindow := p.autoCompactWindowInput.Value()
 
 		if name == "" {
 			p.errMsg = "配置名称不能为空"
@@ -764,6 +774,7 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			DisableNonstreaming:     nonstreaming,
 			EffortLevel:             effort,
 			ClaudeCodeEffortLevel:   claudeCodeEffort,
+			AutoCompactWindow:       autoCompactWindow,
 			CreatedAt:               time.Now(),
 		}
 
@@ -813,6 +824,7 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		nonstreaming := p.nonstreamingInput.Value()
 		effort := p.effortInput.Value()
 		claudeCodeEffort := p.claudeCodeEffortInput.Value()
+		autoCompactWindow := p.autoCompactWindowInput.Value()
 
 		if name == "" {
 			p.errMsg = "配置名称不能为空"
@@ -832,7 +844,7 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			}
 		}
 
-		p.store.Update(p.editingID, name, baseURL, apiKey, model, thinkingModel, defaultHaiku, defaultSonnet, defaultOpus, subagent, nonessential, nonstreaming, effort, claudeCodeEffort)
+		p.store.Update(p.editingID, name, baseURL, apiKey, model, thinkingModel, defaultHaiku, defaultSonnet, defaultOpus, subagent, nonessential, nonstreaming, effort, claudeCodeEffort, autoCompactWindow)
 		p.updateListItems()
 		p.state = ProviderStateList
 
@@ -903,6 +915,7 @@ func (p *ProviderListPage) updateFocus() {
 	p.nonstreamingInput.Blur()
 	p.effortInput.Blur()
 	p.claudeCodeEffortInput.Blur()
+	p.autoCompactWindowInput.Blur()
 
 	switch p.inputFocus {
 	case ProviderFocusName:
@@ -931,6 +944,8 @@ func (p *ProviderListPage) updateFocus() {
 		p.effortInput.Focus()
 	case ProviderFocusClaudeCodeEffort:
 		p.claudeCodeEffortInput.Focus()
+	case ProviderFocusAutoCompactWindow:
+		p.autoCompactWindowInput.Focus()
 	}
 }
 
@@ -961,6 +976,8 @@ func (p *ProviderListPage) resetInputs() {
 	p.effortInput.Placeholder = "max/high/medium/low"
 	p.claudeCodeEffortInput.Reset()
 	p.claudeCodeEffortInput.Placeholder = "high/medium/low (Claude Code)"
+	p.autoCompactWindowInput.Reset()
+	p.autoCompactWindowInput.Placeholder = "Auto Compact Window (e.g. 1000000)"
 }
 
 func (p *ProviderListPage) loadProviderToInputs(provider *models.ModelProvider) {
@@ -979,6 +996,7 @@ func (p *ProviderListPage) loadProviderToInputs(provider *models.ModelProvider) 
 	p.nonstreamingInput.SetValue(provider.DisableNonstreaming)
 	p.effortInput.SetValue(provider.EffortLevel)
 	p.claudeCodeEffortInput.SetValue(provider.ClaudeCodeEffortLevel)
+	p.autoCompactWindowInput.SetValue(provider.AutoCompactWindow)
 	p.inputFocus = ProviderFocusName
 	p.errMsg = ""
 }

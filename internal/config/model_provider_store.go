@@ -163,6 +163,17 @@ func IsProviderConfigMatch(provider *models.ModelProvider, settings map[string]i
 		}
 	}
 
+	// 检查 AutoCompactWindow（允许为空）
+	if provider.AutoCompactWindow != "" {
+		if v, ok := env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"].(string); !ok || v != provider.AutoCompactWindow {
+			return false
+		}
+	} else {
+		if _, exists := env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"]; exists {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -265,6 +276,13 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 		delete(env, "CLAUDE_CODE_EFFORT_LEVEL")
 	}
 
+	// 自动压缩上下文窗口阈值 - 为空时移除
+	if provider.AutoCompactWindow != "" {
+		env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = provider.AutoCompactWindow
+	} else {
+		delete(env, "CLAUDE_CODE_AUTO_COMPACT_WINDOW")
+	}
+
 	// 清理空值键
 	for k := range env {
 		if strings.HasPrefix(k, "ANTHROPIC_") && strings.HasSuffix(k, "_MODEL") && env[k] == "" {
@@ -280,6 +298,9 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 			delete(env, k)
 		}
 		if k == "CLAUDE_CODE_EFFORT_LEVEL" && env[k] == "" {
+			delete(env, k)
+		}
+		if k == "CLAUDE_CODE_AUTO_COMPACT_WINDOW" && env[k] == "" {
 			delete(env, k)
 		}
 	}

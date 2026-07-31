@@ -16,6 +16,19 @@ func NewIDEExecutor() *IDEExecutor {
 	return &IDEExecutor{}
 }
 
+// escapeAppleScript 转义路径中的特殊字符，避免破坏 osascript 脚本
+func escapeAppleScript(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	return s
+}
+
+// shellQuote 用单引号引用路径，防止 shell 解释 $、` 等特殊字符
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
 func (e *IDEExecutor) OpenProject(project *models.Project, ideType models.IDEType) error {
 	var cmd *exec.Cmd
 
@@ -27,14 +40,15 @@ func (e *IDEExecutor) OpenProject(project *models.Project, ideType models.IDETyp
 				return fmt.Errorf("项目路径不存在: %s", project.Path)
 			}
 			// 通过 iTerm2 打开新窗口，进入项目目录并运行 claude
+			runCmd := fmt.Sprintf("cd %s && claude", shellQuote(project.Path))
 			script := fmt.Sprintf(`
 				tell application "iTerm2"
 					create window with default profile
 					tell current session of current window
-						write text "cd %s && claude"
+						write text "%s"
 					end tell
 				end tell
-			`, project.Path)
+			`, escapeAppleScript(runCmd))
 			cmd = exec.Command("osascript", "-e", script)
 		} else {
 			cmd = exec.Command("claude", project.Path)
@@ -58,8 +72,7 @@ func (e *IDEExecutor) OpenProject(project *models.Project, ideType models.IDETyp
 				return fmt.Errorf("项目路径不存在: %s", project.Path)
 			}
 			// 优先使用当前终端工具打开，未知终端回退到 Terminal
-			escapedPath := strings.ReplaceAll(project.Path, "\"", "\\\"")
-			runCmd := fmt.Sprintf("cd \\\"%s\\\" && codex", escapedPath)
+			runCmd := escapeAppleScript(fmt.Sprintf("cd %s && codex", shellQuote(project.Path)))
 
 			termProgram := os.Getenv("TERM_PROGRAM")
 			script := ""

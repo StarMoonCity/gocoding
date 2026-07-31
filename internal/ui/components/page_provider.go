@@ -188,7 +188,7 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 	// 先更新组件（包括 textinput）
 	switch p.state {
 	case ProviderStateAdd, ProviderStateEdit:
-		var cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13 tea.Cmd
+		var cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13, cmd14 tea.Cmd
 		p.nameInput, cmd1 = p.nameInput.Update(msg)
 		p.baseURLInput, cmd2 = p.baseURLInput.Update(msg)
 		p.apiKeyInput, cmd3 = p.apiKeyInput.Update(msg)
@@ -201,7 +201,8 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 		p.nonessentialInput, cmd10 = p.nonessentialInput.Update(msg)
 		p.nonstreamingInput, cmd11 = p.nonstreamingInput.Update(msg)
 		p.effortInput, cmd12 = p.effortInput.Update(msg)
-		p.autoCompactWindowInput, cmd13 = p.autoCompactWindowInput.Update(msg)
+		p.claudeCodeEffortInput, cmd13 = p.claudeCodeEffortInput.Update(msg)
+		p.autoCompactWindowInput, cmd14 = p.autoCompactWindowInput.Update(msg)
 
 		// 处理按键
 		switch msg := msg.(type) {
@@ -209,15 +210,15 @@ func (p *ProviderListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 			switch p.state {
 			case ProviderStateAdd:
 				if cmd := p.handleAddKeyMsg(msg); cmd != nil {
-					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13)...), true
+					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13, cmd14)...), true
 				}
 			case ProviderStateEdit:
 				if cmd := p.handleEditKeyMsg(msg); cmd != nil {
-					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13)...), true
+					return tea.Batch(append([]tea.Cmd{cmd}, cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13, cmd14)...), true
 				}
 			}
 		}
-		return tea.Batch(cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13), true
+		return tea.Batch(cmd1, cmd2, cmd3, cmd4, cmd5, cmd6, cmd7, cmd8, cmd9, cmd10, cmd11, cmd12, cmd13, cmd14), true
 	}
 
 	// 处理按键
@@ -357,8 +358,8 @@ func (p *ProviderListPage) viewAdd() string {
 	dialogWidth := min(p.width-4, max(50, int(float64(p.width)*0.8)))
 	dialogHeight := max(15, p.height-4)
 
-	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
-	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
+	inactiveInput := ui.InputBorder.Width(dialogWidth-6).Padding(0, 1)
+	focusedInput := ui.FocusedInputBorder.Width(dialogWidth-6).Padding(0, 1)
 
 	inputs := []struct {
 		focus    ProviderFocus
@@ -403,12 +404,12 @@ func (p *ProviderListPage) viewAdd() string {
 	// 错误消息（单独处理，不计入滚动内容）
 	var errDisplay string
 	if p.errMsg != "" {
-		errDisplay = ui.ErrorBoxStyle.Render("✗ "+p.errMsg)
+		errDisplay = ui.ErrorBoxStyle.Render("✗ " + p.errMsg)
 	}
 
 	// 计算可视区域和滚动偏移
 	headerLines := 2 // 标题 + 空行
-	helpLines := 1    // 底部帮助行
+	helpLines := 1   // 底部帮助行
 	errLines := 0
 	if errDisplay != "" {
 		errLines = 2 // 错误消息占 2 行
@@ -487,8 +488,8 @@ func (p *ProviderListPage) viewEdit() string {
 	dialogWidth := min(p.width-4, max(50, int(float64(p.width)*0.8)))
 	dialogHeight := max(15, p.height-4)
 
-	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
-	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
+	inactiveInput := ui.InputBorder.Width(dialogWidth-6).Padding(0, 1)
+	focusedInput := ui.FocusedInputBorder.Width(dialogWidth-6).Padding(0, 1)
 
 	inputs := []struct {
 		focus    ProviderFocus
@@ -533,12 +534,12 @@ func (p *ProviderListPage) viewEdit() string {
 	// 错误消息（单独处理，不计入滚动内容）
 	var errDisplay string
 	if p.errMsg != "" {
-		errDisplay = ui.ErrorBoxStyle.Render("✗ "+p.errMsg)
+		errDisplay = ui.ErrorBoxStyle.Render("✗ " + p.errMsg)
 	}
 
 	// 计算可视区域和滚动偏移
 	headerLines := 2 // 标题 + 空行
-	helpLines := 1    // 底部帮助行
+	helpLines := 1   // 底部帮助行
 	errLines := 0
 	if errDisplay != "" {
 		errLines = 2 // 错误消息占 2 行
@@ -760,22 +761,22 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		}
 
 		provider := models.ModelProvider{
-			ID:                      models.GenerateProviderID(),
-			Name:                    name,
-			BaseURL:                 baseURL,
-			APIKey:                  apiKey,
-			Model:                   model,
-			ThinkingModel:           thinkingModel,
-			DefaultHaikuModel:       defaultHaiku,
-			DefaultSonnetModel:     defaultSonnet,
-			DefaultOpusModel:        defaultOpus,
-			SubagentModel:           subagent,
-			DisableNonessential:     nonessential,
-			DisableNonstreaming:     nonstreaming,
-			EffortLevel:             effort,
-			ClaudeCodeEffortLevel:   claudeCodeEffort,
-			AutoCompactWindow:       autoCompactWindow,
-			CreatedAt:               time.Now(),
+			ID:                    models.GenerateProviderID(),
+			Name:                  name,
+			BaseURL:               baseURL,
+			APIKey:                apiKey,
+			Model:                 model,
+			ThinkingModel:         thinkingModel,
+			DefaultHaikuModel:     defaultHaiku,
+			DefaultSonnetModel:    defaultSonnet,
+			DefaultOpusModel:      defaultOpus,
+			SubagentModel:         subagent,
+			DisableNonessential:   nonessential,
+			DisableNonstreaming:   nonstreaming,
+			EffortLevel:           effort,
+			ClaudeCodeEffortLevel: claudeCodeEffort,
+			AutoCompactWindow:     autoCompactWindow,
+			CreatedAt:             time.Now(),
 		}
 
 		p.store.Add(provider)
@@ -796,12 +797,6 @@ func (p *ProviderListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.inputFocus--
 		}
 		p.updateFocus()
-	case "up", "k":
-		if p.formScrollOffset > 0 {
-			p.formScrollOffset--
-		}
-	case "down", "j":
-		p.formScrollOffset++
 	case "esc":
 		p.state = ProviderStateList
 	}
@@ -840,7 +835,6 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			provider := p.store.Get(p.editingID)
 			if provider != nil {
 				apiKey = provider.APIKey
-				claudeCodeEffort = provider.ClaudeCodeEffortLevel
 			}
 		}
 
@@ -862,12 +856,6 @@ func (p *ProviderListPage) handleEditKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.inputFocus--
 		}
 		p.updateFocus()
-	case "up", "k":
-		if p.formScrollOffset > 0 {
-			p.formScrollOffset--
-		}
-	case "down", "j":
-		p.formScrollOffset++
 	case "esc":
 		p.state = ProviderStateList
 	}
@@ -1057,15 +1045,6 @@ func (p *ProviderListPage) renderHelpText() string {
 				sep,
 			),
 		)
-}
-
-func (p *ProviderListPage) renderHelpItem(key, label string, keyStyle lipgloss.Style) string {
-	return lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		keyStyle.Render(key),
-		" ",
-		lipgloss.NewStyle().Foreground(ui.SecondaryText).Render(label),
-	)
 }
 
 // renderFormHelpText 渲染表单页帮助文本

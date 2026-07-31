@@ -95,11 +95,11 @@ func TestProjectStore_Remove(t *testing.T) {
 
 func TestProjectStore_RemoveBoundary(t *testing.T) {
 	tests := []struct {
-		name        string
-		setup       func(*ProjectStore)
-		removeID    string
-		wantLen     int
-		wantGet     map[string]bool // id -> 是否应存在
+		name     string
+		setup    func(*ProjectStore)
+		removeID string
+		wantLen  int
+		wantGet  map[string]bool // id -> 是否应存在
 	}{
 		{
 			name: "删除不存在的项目",
@@ -373,6 +373,42 @@ func TestProjectStore_SortByLastOpened(t *testing.T) {
 	}
 }
 
+func TestProjectStore_IndexAfterSort(t *testing.T) {
+	now := time.Now()
+	store := NewProjectStore()
+	store.Add(Project{ID: "id1", Path: "/tmp/p1", Alias: "P1", LastOpened: now.Add(-2 * time.Hour)})
+	store.Add(Project{ID: "id2", Path: "/tmp/p2", Alias: "P2", LastOpened: now})
+	store.Add(Project{ID: "id3", Path: "/tmp/p3", Alias: "P3", LastOpened: now.Add(-1 * time.Hour)})
+
+	// 排序后索引必须重建，Get/Remove/Update 仍按 ID 命中正确的项目
+	store.SortByLastOpened()
+
+	got := store.Get("id1")
+	if got == nil || got.ID != "id1" || got.Alias != "P1" {
+		t.Fatalf("after SortByLastOpened: Get(id1) = %+v, want id1/P1", got)
+	}
+	got = store.Get("id2")
+	if got == nil || got.ID != "id2" || got.Alias != "P2" {
+		t.Fatalf("after SortByLastOpened: Get(id2) = %+v, want id2/P2", got)
+	}
+
+	store.Update("id1", "P1-renamed", "")
+	if store.Get("id1").Alias != "P1-renamed" {
+		t.Error("after SortByLastOpened: Update(id1) should affect id1")
+	}
+	if store.Get("id2").Alias != "P2" {
+		t.Error("after SortByLastOpened: Update(id1) must not affect id2")
+	}
+
+	store.Remove("id2")
+	if store.Get("id2") != nil {
+		t.Error("after SortByLastOpened: Remove(id2) should remove id2")
+	}
+	if store.Get("id1") == nil || store.Get("id3") == nil {
+		t.Error("after SortByLastOpened: Remove(id2) must keep id1 and id3")
+	}
+}
+
 func TestProjectStore_Search(t *testing.T) {
 	store := NewProjectStore()
 	store.Add(Project{ID: "id1", Path: "/tmp/gocoding", Alias: "Go Project", Description: "A Go project"})
@@ -380,10 +416,10 @@ func TestProjectStore_Search(t *testing.T) {
 	store.Add(Project{ID: "id3", Path: "/tmp/golang-tools", Alias: "Go Tools", Description: "Go developer tools"})
 
 	tests := []struct {
-		name     string
-		query    string
-		wantLen  int
-		wantIDs  []string
+		name    string
+		query   string
+		wantLen int
+		wantIDs []string
 	}{
 		{
 			name:    "按别名搜索小写",

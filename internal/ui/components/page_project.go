@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/textarea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -120,9 +120,9 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 
 // ProjectListPage 项目列表页面 - 完全自治
 type ProjectListPage struct {
-	store  *models.ProjectStore
-	app    *AppModel
-	list   list.Model
+	store *models.ProjectStore
+	app   *AppModel
+	list  list.Model
 
 	// 页面状态
 	state ProjectPageState
@@ -130,13 +130,12 @@ type ProjectListPage struct {
 	// 添加/编辑表单
 	input          textinput.Model
 	secondaryInput textinput.Model
-	inputFocus    InputFocus
-	tempPath      string
-	editingID     string
+	inputFocus     InputFocus
+	tempPath       string
+	editingID      string
 
 	// 详情视图
-	showDetails bool
-	viewport    viewport.Model
+	viewport viewport.Model
 
 	// 描述编辑
 	ta textarea.Model
@@ -161,8 +160,8 @@ type ProjectListPage struct {
 // NewProjectListPage 创建项目列表页面
 func NewProjectListPage(store *models.ProjectStore) *ProjectListPage {
 	p := &ProjectListPage{
-		store:  store,
-		state:  ProjectStateList,
+		store: store,
+		state: ProjectStateList,
 	}
 
 	items := newListItems(store.Projects)
@@ -247,6 +246,15 @@ func (p *ProjectListPage) SetSize(width, height int) {
 // Update 处理消息
 func (p *ProjectListPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 	switch msg := msg.(type) {
+	case openProjectSuccessMsg:
+		if project := p.store.Get(msg.projectID); project != nil {
+			project.UpdateLastOpened()
+			p.store.SortByLastOpened()
+			p.syncListItems()
+			p.list.Select(0)
+		}
+		p.state = ProjectStateList
+		return nil, true
 	case tea.KeyMsg:
 		switch p.state {
 		case ProjectStateList:
@@ -375,8 +383,8 @@ func (p *ProjectListPage) viewList() string {
 func (p *ProjectListPage) viewAdd() string {
 	dialogWidth := min(50, max(40, int(float64(p.width)*0.7)))
 
-	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
-	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
+	inactiveInput := ui.InputBorder.Width(dialogWidth-6).Padding(0, 1)
+	focusedInput := ui.FocusedInputBorder.Width(dialogWidth-6).Padding(0, 1)
 
 	pathStyle := inactiveInput
 	nameStyle := inactiveInput
@@ -415,8 +423,8 @@ func (p *ProjectListPage) viewAdd() string {
 func (p *ProjectListPage) viewRename() string {
 	dialogWidth := min(50, max(40, int(float64(p.width)*0.7)))
 
-	inactiveInput := ui.InputBorder.Width(dialogWidth - 6).Padding(0, 1)
-	focusedInput := ui.FocusedInputBorder.Width(dialogWidth - 6).Padding(0, 1)
+	inactiveInput := ui.InputBorder.Width(dialogWidth-6).Padding(0, 1)
+	focusedInput := ui.FocusedInputBorder.Width(dialogWidth-6).Padding(0, 1)
 
 	pathStyle := inactiveInput
 	nameStyle := inactiveInput
@@ -534,6 +542,8 @@ func (p *ProjectListPage) viewDetail() string {
 
 func (p *ProjectListPage) viewEditDesc() string {
 	dialogWidth := min(60, max(45, int(float64(p.width)*0.75)))
+	p.ta.SetWidth(dialogWidth - 6)
+	p.ta.SetHeight(max(3, p.height-16))
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
@@ -550,7 +560,7 @@ func (p *ProjectListPage) viewEditDesc() string {
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("描述（支持多行）"),
 				p.ta.View(),
 				"",
-				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter/Ctrl+S] 保存  ·  [Esc] 取消"),
+				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Ctrl+S] 保存  ·  [Esc] 取消"),
 			),
 		)
 
@@ -601,8 +611,14 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		}
 	case "v":
 		if len(p.list.Items()) > 0 {
-			p.showDetails = !p.showDetails
+			p.state = ProjectStateViewDetail
 			p.updateViewport()
+		}
+	case "r":
+		if current := p.safeGetSelectedProject(); current != nil {
+			p.ta.SetValue(current.Description)
+			p.ta.Focus()
+			p.state = ProjectStateEditDescription
 		}
 	case "enter":
 		if p.safeGetSelectedProject() != nil {
@@ -634,6 +650,8 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	case "b":
 		p.app.SwitchPage(p.app.batchAddPage)
 		p.app.batchAddPage.OnActivate()
+	case "q":
+		return tea.Quit
 	}
 	return nil
 }
@@ -776,13 +794,17 @@ func (p *ProjectListPage) handleViewDetailKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
 		p.state = ProjectStateList
+	case "up", "down", "pgup", "pgdown", "home", "end":
+		var cmd tea.Cmd
+		p.viewport, cmd = p.viewport.Update(msg)
+		return cmd
 	}
 	return nil
 }
 
 func (p *ProjectListPage) handleEditDescKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
-	case "enter", "ctrl+s":
+	case "ctrl+s":
 		if current := p.safeGetSelectedProject(); current != nil {
 			p.store.UpdateDescription(current.ID, p.ta.Value())
 			p.syncListItems()
@@ -790,21 +812,28 @@ func (p *ProjectListPage) handleEditDescKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		p.state = ProjectStateList
 	case "esc":
 		p.state = ProjectStateList
+	default:
+		var cmd tea.Cmd
+		p.ta, cmd = p.ta.Update(msg)
+		return cmd
 	}
 	return nil
 }
 
 func (p *ProjectListPage) openWithIDE(ideType models.IDEType) tea.Cmd {
-	return func() tea.Msg {
-		idx := p.list.Index()
-		current := p.store.GetByIndex(idx)
-		if current == nil {
+	idx := p.list.Index()
+	current := p.store.GetByIndex(idx)
+	if current == nil {
+		return func() tea.Msg {
 			return errMsg{err: fmt.Errorf("未选择项目")}
 		}
-
+	}
+	projectID := current.ID
+	proj := *current
+	return func() tea.Msg {
 		done := make(chan error, 1)
 		go func() {
-			done <- p.app.IDEExec().OpenProject(current, ideType)
+			done <- p.app.IDEExec().OpenProject(&proj, ideType)
 		}()
 
 		select {
@@ -812,12 +841,7 @@ func (p *ProjectListPage) openWithIDE(ideType models.IDEType) tea.Cmd {
 			if err != nil {
 				return errMsg{err: err}
 			}
-			current.UpdateLastOpened()
-			p.store.SortByLastOpened()
-			p.syncListItems()
-			p.list.Select(0)
-			p.state = ProjectStateList
-			return nil
+			return openProjectSuccessMsg{projectID: projectID}
 		case <-time.After(30 * time.Second):
 			return errMsg{err: fmt.Errorf("打开超时（30秒）")}
 		}
@@ -846,6 +870,10 @@ func (p *ProjectListPage) renderHelpText() string {
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
 					ui.HelpKeyActionStyle.Render("[n]"),
 					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("添加"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[r]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("描述"),
 				),
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
 					ui.HelpKeyActionStyle.Render("[b]"),
@@ -887,6 +915,10 @@ func (p *ProjectListPage) safeGetSelectedProject() *models.Project {
 }
 
 func (p *ProjectListPage) updateViewport() {
+	dialogWidth := max(50, int(float64(p.width)*0.8))
+	p.viewport.Width = dialogWidth - 6
+	p.viewport.Height = max(5, p.height-16)
+
 	if len(p.list.Items()) == 0 {
 		p.viewport.SetContent("")
 		return
@@ -943,6 +975,11 @@ func (p *ProjectListPage) updateViewport() {
 // errMsg 错误消息
 type errMsg struct {
 	err error
+}
+
+// openProjectSuccessMsg 项目打开成功消息
+type openProjectSuccessMsg struct {
+	projectID string
 }
 
 // generateID 生成唯一 ID

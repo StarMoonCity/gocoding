@@ -137,6 +137,7 @@ func (s *ProjectStore) SortByLastOpened() {
 	sort.Slice(s.Projects, func(i, j int) bool {
 		return s.Projects[i].LastOpened.After(s.Projects[j].LastOpened)
 	})
+	s.rebuildIndex()
 }
 
 // Search 搜索项目（模糊匹配别名、路径、描述）

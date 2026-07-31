@@ -27,6 +27,13 @@ func Init() error {
 	v.SetConfigType("yaml")
 	v.AddConfigPath(configDir)
 
+	// 读取已有配置；首次运行没有配置文件属正常情况
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return err
+		}
+	}
+
 	v.SetDefault("projects_path", filepath.Join(configDir, "projects.json"))
 
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {

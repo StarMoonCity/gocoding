@@ -104,6 +104,15 @@ func (p *SearchPage) SetSize(width, height int) {
 // Update 处理消息
 func (p *SearchPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 	switch msg := msg.(type) {
+	case searchOpenedMsg:
+		if project := p.store.Get(msg.projectID); project != nil {
+			project.UpdateLastOpened()
+			p.store.SortByLastOpened()
+		}
+		p.updateListItems()
+		p.state = SearchStateList
+		p.app.ShowToast("已打开: "+msg.alias, "success")
+		return nil, true
 	case tea.KeyMsg:
 		switch p.state {
 		case SearchStateList:
@@ -211,16 +220,16 @@ func (p *SearchPage) viewList() string {
 	}
 
 	mainContent := lipgloss.JoinVertical(
-				lipgloss.Left,
-				searchBox,
-				"",
-				listView,
-				emptyMsg,
-				"",
-				statusText,
-				"",
-				helpText,
-			)
+		lipgloss.Left,
+		searchBox,
+		"",
+		listView,
+		emptyMsg,
+		"",
+		statusText,
+		"",
+		helpText,
+	)
 
 	// 上下居中，左右左对齐带间距
 	return lipgloss.Place(p.width, p.height, lipgloss.Left, lipgloss.Center,
@@ -288,7 +297,7 @@ func (p *SearchPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	default:
 		// 处理搜索输入
 		if len(msg.Runes) > 0 {
-			p.searchQuery += string(msg.Runes[0])
+			p.searchQuery += string(msg.Runes)
 			p.updateListItems()
 		}
 	}
@@ -354,15 +363,14 @@ func (p *SearchPage) openWithIDE(ideType models.IDEType) tea.Cmd {
 		return nil
 	}
 
-	// 执行打开
-	if err := p.app.IDEExec().OpenProject(project, ideType); err != nil {
-		p.app.ShowToast("打开失败: "+err.Error(), "error")
-	} else {
-		p.app.ShowToast("已打开: "+project.Alias, "success")
+	// 异步执行打开，状态更新通过消息回到主循环，避免 goroutine 直接改模型
+	proj := *project
+	return func() tea.Msg {
+		if err := p.app.IDEExec().OpenProject(&proj, ideType); err != nil {
+			return errMsg{err: err}
+		}
+		return searchOpenedMsg{projectID: proj.ID, alias: proj.Alias}
 	}
-
-	p.state = SearchStateList
-	return tea.Quit
 }
 
 func (p *SearchPage) handleListMouse(msg tea.MouseMsg) {
@@ -389,4 +397,10 @@ func (p *SearchPage) handleListMouse(msg tea.MouseMsg) {
 func (p *SearchPage) updateListItems() {
 	results := p.store.Search(p.searchQuery)
 	p.list.SetItems(newListItems(results))
+}
+
+// searchOpenedMsg 搜索页打开项目成功消息
+type searchOpenedMsg struct {
+	projectID string
+	alias     string
 }

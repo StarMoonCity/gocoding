@@ -15,13 +15,15 @@ import (
 
 // BatchAddPage 批量添加项目页面
 type BatchAddPage struct {
-	store     *models.ProjectStore
-	app       *AppModel
-	width     int
-	height    int
-	projects  []string
-	selected  map[int]bool
-	cursor    int
+	store    *models.ProjectStore
+	app      *AppModel
+	width    int
+	height   int
+	projects []string
+	selected map[int]bool
+	cursor   int
+	errMsg   string
+	skipped  int
 }
 
 // NewBatchAddPage 创建批量添加页面
@@ -94,7 +96,7 @@ func (p *BatchAddPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 				p.app.projectPage.OnActivate()
 			}
 			return nil, true
-		case "ctrl+c", "ctrl+q":
+		case "ctrl+c", "ctrl+q", "q":
 			return tea.Quit, false
 		}
 	}
@@ -140,6 +142,36 @@ func (p *BatchAddPage) View(width, height int) string {
 		items = append(items, lipgloss.NewStyle().Foreground(ui.WarningColor).Render("  没有找到可添加的项目"))
 	}
 
+	// 长列表窗口化：只渲染光标附近的可视区域
+	visibleCount := max(5, p.height-14)
+	start := 0
+	if p.cursor >= visibleCount {
+		start = p.cursor - visibleCount + 1
+	}
+	end := min(len(items), start+visibleCount)
+	visibleItems := items[start:end]
+
+	var scrollHint string
+	if len(items) > visibleCount {
+		scrollHint = lipgloss.NewStyle().
+			Width(contentWidth).
+			Align(lipgloss.Right).
+			Foreground(ui.MutedText).
+			Render(fmt.Sprintf("%d-%d / %d", start+1, end, len(p.projects)))
+	}
+
+	var errDisplay string
+	if p.errMsg != "" {
+		errDisplay = ui.ErrorBoxStyle.Render("✗ " + p.errMsg)
+	}
+
+	var skipHint string
+	if p.skipped > 0 {
+		skipHint = lipgloss.NewStyle().
+			Foreground(ui.ForegroundDim).
+			Render(fmt.Sprintf("已跳过 %d 个无法读取的目录", p.skipped))
+	}
+
 	selectedCount := p.filterSelectedCount()
 	var statusText string
 	if selectedCount > 0 {
@@ -165,7 +197,10 @@ func (p *BatchAddPage) View(width, height int) string {
 				"",
 				lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render("~/.claude/projects"),
 				"",
-				lipgloss.JoinVertical(lipgloss.Left, items...),
+				lipgloss.JoinVertical(lipgloss.Left, visibleItems...),
+				scrollHint,
+				errDisplay,
+				skipHint,
 				"",
 				lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Right).Render(statusText),
 				"",
@@ -194,10 +229,11 @@ func truncatePath(path string, maxWidth int) string {
 		return path
 	}
 
-	// 保留开头和结尾，中间用 ... 连接
-	keepLen := (maxWidth - len(prefix)) / 2
-	start := path[:keepLen]
-	end := path[len(path)-keepLen:]
+	// 保留开头和结尾，中间用 ... 连接（按 rune 截断，避免破坏 UTF-8）
+	runes := []rune(path)
+	keepLen := (maxWidth - lipgloss.Width(prefix)) / 2
+	start := string(runes[:keepLen])
+	end := string(runes[len(runes)-keepLen:])
 	return start + prefix + end
 }
 
@@ -237,11 +273,12 @@ func (p *BatchAddPage) renderHelpText() string {
 func (p *BatchAddPage) HandleMouse(msg tea.MouseMsg) {
 	listStartY := 4
 	listEndY := p.height - 7
+	start, _ := p.visibleWindow()
 
 	switch {
 	case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
 		if msg.Y >= listStartY && msg.Y < listEndY {
-			clickedIndex := msg.Y - listStartY
+			clickedIndex := start + msg.Y - listStartY
 			if clickedIndex >= 0 && clickedIndex < len(p.projects) {
 				p.cursor = clickedIndex
 				p.selected[clickedIndex] = !p.selected[clickedIndex]
@@ -256,6 +293,16 @@ func (p *BatchAddPage) HandleMouse(msg tea.MouseMsg) {
 			p.cursor++
 		}
 	}
+}
+
+// visibleWindow 返回当前可视区域的 [start, end)
+func (p *BatchAddPage) visibleWindow() (int, int) {
+	visibleCount := max(5, p.height-14)
+	start := 0
+	if p.cursor >= visibleCount {
+		start = p.cursor - visibleCount + 1
+	}
+	return start, min(len(p.projects), start+visibleCount)
 }
 
 // filterSelectedCount 返回选中的项目数量
@@ -276,12 +323,18 @@ func (p *BatchAddPage) loadProjects() {
 	entries, err := os.ReadDir(claudeProjectsDir)
 	if err != nil {
 		p.projects = nil
+		p.selected = make(map[int]bool)
+		p.cursor = 0
+		p.skipped = 0
+		p.errMsg = "无法读取 ~/.claude/projects: " + err.Error()
 		return
 	}
 
 	p.projects = nil
 	p.selected = make(map[int]bool)
 	p.cursor = 0
+	p.skipped = 0
+	p.errMsg = ""
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -292,6 +345,7 @@ func (p *BatchAddPage) loadProjects() {
 		sessionIndexPath := claudeProjectsDir + "/" + entry.Name() + "/sessions-index.json"
 		data, err := os.ReadFile(sessionIndexPath)
 		if err != nil {
+			p.skipped++
 			continue
 		}
 
@@ -299,15 +353,18 @@ func (p *BatchAddPage) loadProjects() {
 			OriginalPath string `json:"originalPath"`
 		}
 		if err := json.Unmarshal(data, &sessionIndex); err != nil {
+			p.skipped++
 			continue
 		}
 
 		if sessionIndex.OriginalPath == "" {
+			p.skipped++
 			continue
 		}
 
 		// 检查路径是否有效
 		if _, err := os.Stat(sessionIndex.OriginalPath); err != nil {
+			p.skipped++
 			continue
 		}
 
@@ -341,9 +398,9 @@ func (p *BatchAddPage) addSelectedProjects() {
 				alias = path
 			}
 			project := models.Project{
-				ID:        generateID(),
-				Path:      path,
-				Alias:     alias,
+				ID:    generateID(),
+				Path:  path,
+				Alias: alias,
 			}
 			p.store.Add(project)
 			count++

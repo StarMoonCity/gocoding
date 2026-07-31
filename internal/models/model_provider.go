@@ -10,29 +10,29 @@ import (
 )
 
 type ModelProvider struct {
-	ID                       string    `json:"id"`
-	Name                     string    `json:"name"`                         // 配置名称，如 "MiniMax", "Claude"
-	BaseURL                  string    `json:"base_url"`                     // API Base URL
-	APIKey                   string    `json:"api_key"`                      // API Key
-	Model                    string    `json:"model"`                        // 默认模型名
-	ThinkingModel            string    `json:"thinking_model"`               // 推理模型
-	DefaultHaikuModel        string    `json:"default_haiku_model"`          // Haiku 默认模型
-	DefaultSonnetModel       string    `json:"default_sonnet_model"`         // Sonnet 默认模型
-	DefaultOpusModel         string    `json:"default_opus_model"`           // Opus 默认模型
-	SubagentModel            string    `json:"subagent_model"`               // SubAgent 模型
-	DisableNonessential      string    `json:"disable_nonessential_traffic"` // 禁用非必要流量 (1/空)
-	DisableNonstreaming      string    `json:"disable_nonstreaming_fallback"` // 禁用非流式回退 (1/空)
-	EffortLevel              string    `json:"effort_level"`                 // 推理力度 (max/high/medium/low)
-	ClaudeCodeEffortLevel    string    `json:"claude_code_effort_level"`     // Claude Code 推理力度 (high/medium/low)
-	AutoCompactWindow        string    `json:"auto_compact_window"`          // 自动压缩上下文窗口阈值 (如 1000000)
-	Active                   bool      `json:"active"`                       // 是否激活
-	CreatedAt                time.Time `json:"created_at"`
+	ID                    string    `json:"id"`
+	Name                  string    `json:"name"`                          // 配置名称，如 "MiniMax", "Claude"
+	BaseURL               string    `json:"base_url"`                      // API Base URL
+	APIKey                string    `json:"api_key"`                       // API Key
+	Model                 string    `json:"model"`                         // 默认模型名
+	ThinkingModel         string    `json:"thinking_model"`                // 推理模型
+	DefaultHaikuModel     string    `json:"default_haiku_model"`           // Haiku 默认模型
+	DefaultSonnetModel    string    `json:"default_sonnet_model"`          // Sonnet 默认模型
+	DefaultOpusModel      string    `json:"default_opus_model"`            // Opus 默认模型
+	SubagentModel         string    `json:"subagent_model"`                // SubAgent 模型
+	DisableNonessential   string    `json:"disable_nonessential_traffic"`  // 禁用非必要流量 (1/空)
+	DisableNonstreaming   string    `json:"disable_nonstreaming_fallback"` // 禁用非流式回退 (1/空)
+	EffortLevel           string    `json:"effort_level"`                  // 推理力度 (max/high/medium/low)
+	ClaudeCodeEffortLevel string    `json:"claude_code_effort_level"`      // Claude Code 推理力度 (high/medium/low)
+	AutoCompactWindow     string    `json:"auto_compact_window"`           // 自动压缩上下文窗口阈值 (如 1000000)
+	Active                bool      `json:"active"`                        // 是否激活
+	CreatedAt             time.Time `json:"created_at"`
 }
 
 type ModelProviderStore struct {
-	Providers []ModelProvider  `json:"providers"`
-	ActiveID  string           `json:"active_id"` // 当前激活的配置ID
-	index     map[string]int    `json:"-"`         // id -> index 映射，不持久化
+	Providers []ModelProvider `json:"providers"`
+	ActiveID  string          `json:"active_id"` // 当前激活的配置ID
+	index     map[string]int  `json:"-"`         // id -> index 映射，不持久化
 }
 
 func NewModelProviderStore() *ModelProviderStore {
@@ -63,6 +63,9 @@ func (s *ModelProviderStore) Remove(id string) {
 		return
 	}
 	s.Providers = append(s.Providers[:idx], s.Providers[idx+1:]...)
+	if s.ActiveID == id {
+		s.ActiveID = ""
+	}
 	s.rebuildIndex()
 }
 
@@ -99,14 +102,13 @@ func (s *ModelProviderStore) Update(id, name, baseURL, apiKey, model, thinkingMo
 
 // SetActive 设置激活配置
 func (s *ModelProviderStore) SetActive(id string) {
-	// 先取消所有激活
-	for i := range s.Providers {
-		s.Providers[i].Active = false
-	}
-	// 激活指定配置
 	idx, ok := s.index[id]
 	if !ok {
 		return
+	}
+	// 先取消所有激活
+	for i := range s.Providers {
+		s.Providers[i].Active = false
 	}
 	s.Providers[idx].Active = true
 	s.ActiveID = id
@@ -162,5 +164,5 @@ func (s *ModelProviderStore) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }

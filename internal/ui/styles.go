@@ -2,18 +2,16 @@ package ui
 
 import (
 	"github.com/charmbracelet/lipgloss"
-
-	"gocoding/internal/models"
 )
 
 // 霓虹风格颜色系统 - 深色背景 + 青色主色调
 var (
 	// 背景层次（从深到浅）
-	BackgroundDeep   = lipgloss.Color("#0A0E14") // 最深背景（近黑）
-	Background       = lipgloss.Color("#11151C") // 主背景
+	BackgroundDeep    = lipgloss.Color("#0A0E14") // 最深背景（近黑）
+	Background        = lipgloss.Color("#11151C") // 主背景
 	BackgroundSurface = lipgloss.Color("#1A2332") // 面板/卡片
-	BackgroundLight  = lipgloss.Color("#243246") // 表面层
-	BackgroundHover  = lipgloss.Color("#2D3B4F") // 悬停状态
+	BackgroundLight   = lipgloss.Color("#243246") // 表面层
+	BackgroundHover   = lipgloss.Color("#2D3B4F") // 悬停状态
 
 	// 主色调 - 柔和青色系（护眼）
 	PrimaryColor    = lipgloss.Color("#4DB6AC") // 柔和青色
@@ -29,28 +27,28 @@ var (
 	ErrorDim     = lipgloss.Color("#B06060") // 深红
 
 	// 文字色（层次分明）
-	Foreground     = lipgloss.Color("#FFFFFF") // 主文字（纯白）
-	ForegroundDim  = lipgloss.Color("#E0E6ED") // 次级文字
-	SecondaryText  = lipgloss.Color("#8892A0") // 中性文字
-	MutedText      = lipgloss.Color("#4A5568") // 淡化文字
+	Foreground    = lipgloss.Color("#FFFFFF") // 主文字（纯白）
+	ForegroundDim = lipgloss.Color("#E0E6ED") // 次级文字
+	SecondaryText = lipgloss.Color("#8892A0") // 中性文字
+	MutedText     = lipgloss.Color("#4A5568") // 淡化文字
 
 	// 选中/激活状态（霓虹发光效果）
-	SelectedBg      = lipgloss.Color("#0D3B4D") // 选中背景
-	SelectedBgAlt   = lipgloss.Color("#1A4A5E") // 选中背景备用
-	SelectedBorder  = lipgloss.Color("#00E5FF") // 选中边框（发光）
+	SelectedBg     = lipgloss.Color("#0D3B4D") // 选中背景
+	SelectedBgAlt  = lipgloss.Color("#1A4A5E") // 选中背景备用
+	SelectedBorder = lipgloss.Color("#00E5FF") // 选中边框（发光）
 
 	// 悬停状态
-	HoverBg         = lipgloss.Color("#1E3A5F") // 悬停背景
-	HoverBorder     = lipgloss.Color("#00D4FF") // 悬停边框
+	HoverBg     = lipgloss.Color("#1E3A5F") // 悬停背景
+	HoverBorder = lipgloss.Color("#00D4FF") // 悬停边框
 
 	// 输入框焦点
-	FocusBorder     = lipgloss.Color("#00E5FF") // 焦点边框
-	FocusBg         = lipgloss.Color("#0D2A36") // 焦点背景
+	FocusBorder = lipgloss.Color("#00E5FF") // 焦点边框
+	FocusBg     = lipgloss.Color("#0D2A36") // 焦点背景
 
 	// 特殊效果色 - 柔和色系（舒适护眼）
-	AccentCyan      = lipgloss.Color("#5BBFBA") // 柔和青色（非霓虹）
-	AccentMagenta   = lipgloss.Color("#B060B0") // 柔和洋红（非霓虹）
-	AccentGold      = lipgloss.Color("#D4A574") // 柔和金色（非霓虹）
+	AccentCyan    = lipgloss.Color("#5BBFBA") // 柔和青色（非霓虹）
+	AccentMagenta = lipgloss.Color("#B060B0") // 柔和洋红（非霓虹）
+	AccentGold    = lipgloss.Color("#D4A574") // 柔和金色（非霓虹）
 
 	// IDE 品牌色 - 柔和色系
 	IDEClaudeColor   = lipgloss.Color("#E6A370") // 柔和橙色 - Claude
@@ -230,11 +228,11 @@ var HelpKeyStyle = lipgloss.NewStyle().
 
 // HelpKey 分类样式 - 按操作类型颜色编码
 var (
-	HelpKeyNavStyle    = lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true)   // 导航: 青色
-	HelpKeyActionStyle = lipgloss.NewStyle().Foreground(AccentGold).Bold(true)     // 操作: 金色
-	HelpKeyDangerStyle = lipgloss.NewStyle().Foreground(ErrorColor).Bold(true)     // 危险: 红色
-	HelpKeyQuitStyle   = lipgloss.NewStyle().Foreground(SecondaryText).Bold(true)  // 退出: 灰色
-	HelpKeySearchStyle = lipgloss.NewStyle().Foreground(AccentCyan).Bold(true)     // 搜索: 亮青
+	HelpKeyNavStyle    = lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true)  // 导航: 青色
+	HelpKeyActionStyle = lipgloss.NewStyle().Foreground(AccentGold).Bold(true)    // 操作: 金色
+	HelpKeyDangerStyle = lipgloss.NewStyle().Foreground(ErrorColor).Bold(true)    // 危险: 红色
+	HelpKeyQuitStyle   = lipgloss.NewStyle().Foreground(SecondaryText).Bold(true) // 退出: 灰色
+	HelpKeySearchStyle = lipgloss.NewStyle().Foreground(AccentCyan).Bold(true)    // 搜索: 亮青
 )
 
 // TitleBarStyle 标题栏样式
@@ -402,20 +400,4 @@ func ActiveStyle() lipgloss.Style {
 		Background(PrimaryColor).
 		Bold(true).
 		Padding(0, 1)
-}
-
-// ideColor 返回 IDE 对应的品牌色
-func ideColor(ideType models.IDEType) lipgloss.Color {
-	switch ideType {
-	case models.IDEClaudeCode:
-		return IDEClaudeColor
-	case models.IDEVSCode:
-		return IDEVSCodeColor
-	case models.IDEOpenCode:
-		return IDEOpenCodeColor
-	case models.IDECodexCLI:
-		return IDECodexColor
-	default:
-		return PrimaryColor
-	}
 }

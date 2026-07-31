@@ -20,18 +20,19 @@ const (
 
 // Toast Toast 消息结构
 type Toast struct {
-	Message  string
-	Type     ToastType
-	Duration time.Duration
+	Message   string
+	Type      ToastType
+	Duration  time.Duration
 	CreatedAt time.Time
+	ExpiresAt time.Time
 }
 
 // ToastManager Toast 通知管理器
 type ToastManager struct {
-	toasts    []Toast
-	timer     *time.Timer
-	width     int
-	visible   bool
+	toasts      []Toast
+	width       int
+	visible     bool
+	tickPending bool
 }
 
 // NewToastManager 创建新的 Toast 管理器
@@ -50,25 +51,38 @@ func (m *ToastManager) Show(message string, toastType string, duration time.Dura
 		Type:      ToastType(toastType),
 		Duration:  duration,
 		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(duration),
 	}
 	m.toasts = append(m.toasts, toast)
 	m.visible = true
-
-	// 启动定时器
-	if m.timer != nil {
-		m.timer.Stop()
-	}
-	m.timer = time.AfterFunc(duration, func() {
-		m.toasts = m.toasts[1:]
-		if len(m.toasts) == 0 {
-			m.visible = false
-		}
-	})
 }
 
-// Update 更新消息（用于定时器）
+// toastExpiredMsg toast 过期消息
+type toastExpiredMsg struct{}
+
+// Update 驱动 toast 过期：通过 tea.Tick 在主循环内移除，避免 goroutine 直接修改状态
 func (m *ToastManager) Update(msg tea.Msg) tea.Cmd {
-	return nil
+	switch msg.(type) {
+	case toastExpiredMsg:
+		if len(m.toasts) > 0 {
+			m.toasts = m.toasts[1:]
+		}
+		m.visible = len(m.toasts) > 0
+		m.tickPending = false
+	}
+
+	// 有可见 toast 且没有挂起的计时器时，安排过期
+	if m.tickPending || !m.visible || len(m.toasts) == 0 {
+		return nil
+	}
+	remaining := time.Until(m.toasts[0].ExpiresAt)
+	if remaining < 0 {
+		remaining = 0
+	}
+	m.tickPending = true
+	return tea.Tick(remaining, func(time.Time) tea.Msg {
+		return toastExpiredMsg{}
+	})
 }
 
 // View 渲染 Toast
@@ -110,8 +124,5 @@ func (m *ToastManager) SetWidth(width int) {
 func (m *ToastManager) Clear() {
 	m.toasts = nil
 	m.visible = false
-	if m.timer != nil {
-		m.timer.Stop()
-		m.timer = nil
-	}
+	m.tickPending = false
 }

@@ -109,8 +109,8 @@ func TestModelProviderStore_RemoveBoundary(t *testing.T) {
 				s.Add(ModelProvider{ID: "id1", Name: "P1", BaseURL: "https://p1.com", APIKey: "key", Model: "m1"})
 			},
 			removeID: "non-existent",
-			wantLen: 1,
-			wantGet: map[string]bool{"id1": true},
+			wantLen:  1,
+			wantGet:  map[string]bool{"id1": true},
 		},
 		{
 			name: "删除唯一配置",
@@ -307,10 +307,10 @@ func TestModelProviderStore_SetActive(t *testing.T) {
 			},
 		},
 		{
-			name: "空存储设置激活",
-			setup: func(s *ModelProviderStore) {},
-			setActiveID:  "id1",
-			wantActiveID: "",
+			name:          "空存储设置激活",
+			setup:         func(s *ModelProviderStore) {},
+			setActiveID:   "id1",
+			wantActiveID:  "",
 			wantProviders: map[string]bool{},
 		},
 		{
@@ -370,8 +370,8 @@ func TestModelProviderStore_GetActive(t *testing.T) {
 		wantActive string // 期望激活的 ID，为空表示期望 nil
 	}{
 		{
-			name: "空存储",
-			setup: func(s *ModelProviderStore) {},
+			name:       "空存储",
+			setup:      func(s *ModelProviderStore) {},
 			wantActive: "",
 		},
 		{
@@ -474,17 +474,17 @@ func TestModelProviderStore_Load_Save(t *testing.T) {
 	// 创建并保存存储
 	store1 := NewModelProviderStore()
 	store1.Add(ModelProvider{
-		ID:              "id1",
-		Name:            "Test Provider",
-		BaseURL:         "https://api.test.com",
-		APIKey:          "secret-key",
-		Model:           "test-model",
-		ThinkingModel:   "test-reasoning",
+		ID:                 "id1",
+		Name:               "Test Provider",
+		BaseURL:            "https://api.test.com",
+		APIKey:             "secret-key",
+		Model:              "test-model",
+		ThinkingModel:      "test-reasoning",
 		DefaultHaikuModel:  "haiku-3",
 		DefaultSonnetModel: "sonnet-4",
 		DefaultOpusModel:   "opus-3",
-		Active:          true,
-		CreatedAt:       time.Now(),
+		Active:             true,
+		CreatedAt:          time.Now(),
 	})
 	store1.SetActive("id1")
 
@@ -545,17 +545,17 @@ func TestModelProviderStore_SaveInvalidDir(t *testing.T) {
 func TestModelProvider_JSONSerialization(t *testing.T) {
 	now := time.Now()
 	p := ModelProvider{
-		ID:                "test-id",
-		Name:              "Test Provider",
-		BaseURL:           "https://api.test.com",
-		APIKey:            "secret",
-		Model:             "test-model",
+		ID:                 "test-id",
+		Name:               "Test Provider",
+		BaseURL:            "https://api.test.com",
+		APIKey:             "secret",
+		Model:              "test-model",
 		ThinkingModel:      "reasoning",
 		DefaultHaikuModel:  "haiku",
 		DefaultSonnetModel: "sonnet",
 		DefaultOpusModel:   "opus",
-		Active:            true,
-		CreatedAt:         now,
+		Active:             true,
+		CreatedAt:          now,
 	}
 
 	data, err := json.Marshal(p)
@@ -647,6 +647,42 @@ func TestModelProviderStore_RebuildIndex(t *testing.T) {
 	}
 }
 
+func TestModelProviderStore_SetActiveInvalidKeepsState(t *testing.T) {
+	store := NewModelProviderStore()
+	store.Add(ModelProvider{ID: "id1", Name: "P1", BaseURL: "https://p1.com", APIKey: "key", Model: "m1"})
+	store.Add(ModelProvider{ID: "id2", Name: "P2", BaseURL: "https://p2.com", APIKey: "key", Model: "m2"})
+
+	store.SetActive("id1")
+	// 设置不存在的 ID 不应破坏当前激活状态
+	store.SetActive("non-existent")
+
+	if store.ActiveID != "id1" {
+		t.Errorf("ActiveID = %q, want id1", store.ActiveID)
+	}
+	if p := store.Get("id1"); p == nil || !p.Active {
+		t.Error("id1 should remain active after SetActive with invalid ID")
+	}
+	if p := store.Get("id2"); p == nil || p.Active {
+		t.Error("id2 should stay inactive")
+	}
+}
+
+func TestModelProviderStore_RemoveActiveClearsActiveID(t *testing.T) {
+	store := NewModelProviderStore()
+	store.Add(ModelProvider{ID: "id1", Name: "P1", BaseURL: "https://p1.com", APIKey: "key", Model: "m1"})
+	store.Add(ModelProvider{ID: "id2", Name: "P2", BaseURL: "https://p2.com", APIKey: "key", Model: "m2"})
+
+	store.SetActive("id1")
+	store.Remove("id1")
+
+	if store.ActiveID != "" {
+		t.Errorf("ActiveID = %q, want empty after removing active provider", store.ActiveID)
+	}
+	if store.Get("id1") != nil {
+		t.Error("id1 should be removed")
+	}
+}
+
 func TestModelProviderStore_GetAfterUpdate(t *testing.T) {
 	store := NewModelProviderStore()
 	store.Add(ModelProvider{ID: "id1", Name: "Original", BaseURL: "https://orig.com", APIKey: "key", Model: "m1"})
@@ -668,17 +704,17 @@ func TestModelProviderStore_GetAfterUpdate(t *testing.T) {
 func TestModelProvider_Fields(t *testing.T) {
 	now := time.Now()
 	p := ModelProvider{
-		ID:                "id",
-		Name:              "Name",
-		BaseURL:           "BaseURL",
-		APIKey:            "APIKey",
-		Model:             "Model",
+		ID:                 "id",
+		Name:               "Name",
+		BaseURL:            "BaseURL",
+		APIKey:             "APIKey",
+		Model:              "Model",
 		ThinkingModel:      "ThinkingModel",
 		DefaultHaikuModel:  "DefaultHaikuModel",
 		DefaultSonnetModel: "DefaultSonnetModel",
 		DefaultOpusModel:   "DefaultOpusModel",
-		Active:            true,
-		CreatedAt:         now,
+		Active:             true,
+		CreatedAt:          now,
 	}
 
 	if p.ID != "id" {

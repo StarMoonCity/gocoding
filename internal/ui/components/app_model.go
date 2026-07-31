@@ -26,14 +26,8 @@ type AppModel struct {
 	// 当前活动页面
 	currentPage PageModel
 
-	// 模态框管理
-	modalManager ModalManager
-
 	// Toast 管理
 	toastManager ToastManager
-
-	// 状态栏
-	statusBar StatusBar
 
 	// 尺寸
 	width  int
@@ -98,36 +92,54 @@ func (m *AppModel) Init() tea.Cmd {
 func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	// Toast 管理器先处理过期消息，避免被页面消费导致 toast 不消失
+	if cmd := m.toastManager.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.SetSize(msg.Width, msg.Height)
-		return m, nil
+		return m, tea.Batch(cmds...)
 
 	case tea.KeyMsg:
 		m.lastKey = msg.String()
 
-		// 先尝试模态框
-		if m.modalManager.HasModal() {
-			modal := m.modalManager.Top()
-			if modal != nil {
-				if cmd, consumed := modal.Update(msg); consumed {
-					return m, cmd
-				}
-			}
-		}
-
 		// 全局快捷键
 		switch msg.String() {
-		case "ctrl+c", "ctrl+q", "q":
+		case "ctrl+c", "ctrl+q":
 			return m, tea.Quit
 		}
 
 		// 路由到当前页面
 		if m.currentPage != nil {
 			if cmd, consumed := m.currentPage.Update(msg); consumed {
-				return m, cmd
+				cmds = append(cmds, cmd)
+				// 页面处理可能触发 ShowToast，这里补一次计时
+				if tick := m.toastManager.Update(msg); tick != nil {
+					cmds = append(cmds, tick)
+				}
+				return m, tea.Batch(cmds...)
 			}
 		}
+
+	case openProjectSuccessMsg:
+		// 打开 IDE 成功后由项目页刷新列表与状态
+		if cmd, consumed := m.projectPage.Update(msg); consumed {
+			cmds = append(cmds, cmd)
+		}
+		return m, tea.Batch(cmds...)
+
+	case searchOpenedMsg:
+		// 打开 IDE 成功后由搜索页刷新列表与状态
+		if cmd, consumed := m.searchPage.Update(msg); consumed {
+			cmds = append(cmds, cmd)
+		}
+		return m, tea.Batch(cmds...)
+
+	case errMsg:
+		// 展示 IDE 打开等异步操作产生的错误
+		m.ShowToast(msg.err.Error(), string(ToastError))
 
 	case tea.MouseMsg:
 		if m.currentPage != nil {
@@ -135,7 +147,7 @@ func (m *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// 更新 Toast 管理器
+	// 更新 Toast 管理器（页面处理可能触发 ShowToast，这里补一次计时）
 	if cmd := m.toastManager.Update(msg); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
@@ -152,21 +164,10 @@ func (m *AppModel) View() string {
 		content = m.currentPage.View(m.width, m.height)
 	}
 
-	// 叠加模态框
-	if m.modalManager.HasModal() {
-		content = m.modalManager.Overlay(content, m.width, m.height)
-	}
-
 	// 叠加 Toast
 	toastView := m.toastManager.View(m.width)
 	if toastView != "" {
 		content += "\n" + toastView
-	}
-
-	// 渲染状态栏
-	statusView := m.statusBar.View(m.width)
-	if statusView != "" {
-		content += "\n" + statusView
 	}
 
 	// 调试面板
@@ -182,29 +183,9 @@ func (m *AppModel) SwitchPage(page PageModel) {
 	m.currentPage = page
 }
 
-// PushModal 推送模态框
-func (m *AppModel) PushModal(modal Modal) {
-	m.modalManager.Push(modal)
-}
-
-// PopModal 弹出模态框
-func (m *AppModel) PopModal() {
-	m.modalManager.Pop()
-}
-
-// CloseModal 关闭所有模态框
-func (m *AppModel) CloseModal() {
-	m.modalManager.Close()
-}
-
 // ShowToast 显示 Toast 消息
 func (m *AppModel) ShowToast(message string, toastType string) {
 	m.toastManager.Show(message, toastType, 3*time.Second)
-}
-
-// SetStatusBar 设置状态栏内容
-func (m *AppModel) SetStatusBar(left, center, right string) {
-	m.statusBar.Set(left, center, right)
 }
 
 // Store 访问器

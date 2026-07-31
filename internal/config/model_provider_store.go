@@ -25,20 +25,12 @@ func NewModelProviderConfig(store *models.ModelProviderStore) *ModelProviderConf
 	}
 }
 
-func (c *ModelProviderConfig) SetFilePath(path string) {
-	c.filePath = path
-}
-
 func (c *ModelProviderConfig) Load() error {
 	return c.store.Load(c.filePath)
 }
 
 func (c *ModelProviderConfig) Save() error {
 	return c.store.Save(c.filePath)
-}
-
-func (c *ModelProviderConfig) GetStore() *models.ModelProviderStore {
-	return c.store
 }
 
 // ClaudeSettingsPath 返回 Claude Code settings.json 路径
@@ -152,9 +144,13 @@ func IsProviderConfigMatch(provider *models.ModelProvider, settings map[string]i
 		}
 	}
 
-	// 检查 EffortLevel（允许为空）
-	if provider.EffortLevel != "" {
-		if v, ok := env["CLAUDE_CODE_EFFORT_LEVEL"].(string); !ok || v != provider.EffortLevel {
+	// 检查推理力度（允许为空）；ClaudeCodeEffortLevel 优先，兼容旧字段 EffortLevel
+	effort := provider.ClaudeCodeEffortLevel
+	if effort == "" {
+		effort = provider.EffortLevel
+	}
+	if effort != "" {
+		if v, ok := env["CLAUDE_CODE_EFFORT_LEVEL"].(string); !ok || v != effort {
 			return false
 		}
 	} else {
@@ -189,13 +185,22 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 	// 读取现有配置
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
-		return false, err
+		if !os.IsNotExist(err) {
+			return false, err
+		}
+		// 首次激活：settings.json 尚不存在，从空配置开始
+		data = nil
 	}
 
 	// 解析 JSON
 	var settings map[string]interface{}
-	if err := json.Unmarshal(data, &settings); err != nil {
-		return false, err
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, &settings); err != nil {
+			return false, err
+		}
+	}
+	if settings == nil {
+		settings = make(map[string]interface{})
 	}
 
 	// 检查是否与当前配置一致
@@ -269,8 +274,10 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 		delete(env, "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK")
 	}
 
-	// 推理力度 - 为空时移除
-	if provider.EffortLevel != "" {
+	// 推理力度 - ClaudeCodeEffortLevel 优先，兼容旧字段 EffortLevel；为空时移除
+	if provider.ClaudeCodeEffortLevel != "" {
+		env["CLAUDE_CODE_EFFORT_LEVEL"] = provider.ClaudeCodeEffortLevel
+	} else if provider.EffortLevel != "" {
 		env["CLAUDE_CODE_EFFORT_LEVEL"] = provider.EffortLevel
 	} else {
 		delete(env, "CLAUDE_CODE_EFFORT_LEVEL")
@@ -318,5 +325,5 @@ func WriteToClaudeSettings(provider *models.ModelProvider) (bool, error) {
 		return false, err
 	}
 
-	return false, os.WriteFile(settingsPath, output, 0644)
+	return false, os.WriteFile(settingsPath, output, 0600)
 }

@@ -97,7 +97,7 @@ func (p *BatchAddPage) Update(msg tea.Msg) (tea.Cmd, bool) {
 			}
 			return nil, true
 		case "ctrl+c", "ctrl+q", "q":
-			return tea.Quit, false
+			return tea.Quit, true
 		}
 	}
 	return nil, false
@@ -369,22 +369,12 @@ func (p *BatchAddPage) loadProjects() {
 		}
 
 		// 检查是否已经添加过
-		if p.isAlreadyAdded(sessionIndex.OriginalPath) {
+		if p.store.PathExists(sessionIndex.OriginalPath) {
 			continue
 		}
 
 		p.projects = append(p.projects, sessionIndex.OriginalPath)
 	}
-}
-
-// isAlreadyAdded 检查项目是否已经添加过
-func (p *BatchAddPage) isAlreadyAdded(path string) bool {
-	for _, proj := range p.store.Projects {
-		if proj.Path == path {
-			return true
-		}
-	}
-	return false
 }
 
 // addSelectedProjects 添加选中的项目
@@ -407,7 +397,14 @@ func (p *BatchAddPage) addSelectedProjects() {
 		}
 	}
 
-	if count > 0 && p.app != nil {
+	if count == 0 {
+		if p.app != nil {
+			p.app.ShowToast("未选择任何项目", string(ToastTip))
+		}
+		return
+	}
+
+	if p.app != nil {
 		p.app.ShowToast(fmt.Sprintf("已添加 %d 个项目", count), "success")
 		p.app.SwitchPage(p.app.projectPage)
 		p.app.projectPage.OnActivate()

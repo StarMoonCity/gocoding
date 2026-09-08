@@ -32,17 +32,17 @@ type Project struct {
 // ValidatePath checks if a project path is valid
 func ValidatePath(path string) error {
 	if path == "" {
-		return errors.New("path cannot be empty")
+		return errors.New("路径不能为空")
 	}
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return errors.New("path does not exist")
+			return errors.New("路径不存在")
 		}
-		return errors.New("invalid path: " + err.Error())
+		return errors.New("路径无效: " + err.Error())
 	}
 	if !info.IsDir() {
-		return errors.New("path is not a directory")
+		return errors.New("路径不是目录")
 	}
 	return nil
 }
@@ -155,6 +155,16 @@ func (s *ProjectStore) Search(query string) []Project {
 		}
 	}
 	return results
+}
+
+// PathExists 判断路径是否已经在项目列表中
+func (s *ProjectStore) PathExists(path string) bool {
+	for _, p := range s.Projects {
+		if p.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 // GetMostRecentlyOpened 返回最近打开的项目

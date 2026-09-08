@@ -399,6 +399,10 @@ func (p *SearchPage) handleListMouse(msg tea.MouseMsg) {
 func (p *SearchPage) updateListItems() {
 	results := p.store.Search(p.searchQuery)
 	p.list.SetItems(newListItems(results))
+	// 过滤后列表可能变短，把选中项钳制到有效范围
+	if len(results) > 0 && p.list.Index() >= len(results) {
+		p.list.Select(len(results) - 1)
+	}
 }
 
 // searchOpenedMsg 搜索页打开项目成功消息

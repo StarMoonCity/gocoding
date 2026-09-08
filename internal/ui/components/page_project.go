@@ -57,8 +57,26 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 		selector = lipgloss.NewStyle().Foreground(ui.SelectedBorder).Render("▸ ")
 	}
 
-	var namePart string
+	var recentDot string
+	if time.Since(proj.project.LastOpened) < 1*time.Hour {
+		recentDot = lipgloss.NewStyle().Foreground(ui.WarningColor).Render("•")
+	}
+
+	var countBadge string
+	if proj.project.OpenCount >= 10 {
+		countBadge = ui.FeaturedBadgeStyle.Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+	} else {
+		countBadge = ui.BadgeStyle.Foreground(ui.SuccessColor).Render(fmt.Sprintf("×%d", proj.project.OpenCount))
+	}
+
+	// 截断过长的别名，避免撑破列表布局
 	alias := proj.project.Alias
+	nameBudget := m.Width() - lipgloss.Width(selector) - lipgloss.Width(recentDot) - lipgloss.Width(separator) - lipgloss.Width(countBadge)
+	if lipgloss.Width(alias) > nameBudget {
+		alias = truncateToWidth(alias, nameBudget)
+	}
+
+	var namePart string
 	if d.searchQuery != nil && *d.searchQuery != "" {
 		query := *d.searchQuery
 		aliasLower := strings.ToLower(alias)
@@ -95,18 +113,6 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 		}
 	}
 
-	var recentDot string
-	if time.Since(proj.project.LastOpened) < 1*time.Hour {
-		recentDot = lipgloss.NewStyle().Foreground(ui.WarningColor).Render("•")
-	}
-
-	var countBadge string
-	if proj.project.OpenCount >= 10 {
-		countBadge = ui.FeaturedBadgeStyle.Render(fmt.Sprintf("×%d", proj.project.OpenCount))
-	} else {
-		countBadge = ui.BadgeStyle.Foreground(ui.SuccessColor).Render(fmt.Sprintf("×%d", proj.project.OpenCount))
-	}
-
 	content := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		selector,
@@ -131,6 +137,30 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 	row := content
 
 	fmt.Fprintf(w, "%s", row)
+}
+
+// truncateToWidth 按显示宽度截断字符串（rune 安全），超宽时以省略号结尾
+func truncateToWidth(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	if lipgloss.Width(s) <= maxWidth {
+		return s
+	}
+	if maxWidth == 1 {
+		return "…"
+	}
+	var sb strings.Builder
+	w := 0
+	for _, r := range s {
+		rw := lipgloss.Width(string(r))
+		if w+rw > maxWidth-1 {
+			break
+		}
+		sb.WriteRune(r)
+		w += rw
+	}
+	return sb.String() + "…"
 }
 
 // ProjectListPage 项目列表页面 - 完全自治
@@ -338,6 +368,16 @@ func (p *ProjectListPage) View(width, height int) string {
 // HandleMouse 处理鼠标
 func (p *ProjectListPage) HandleMouse(msg tea.MouseMsg) {
 	p.mouseEnabled = true
+
+	// 列表状态下支持滚轮导航，与其他页面保持一致
+	if p.state == ProjectStateList {
+		switch msg.Button {
+		case tea.MouseButtonWheelUp:
+			p.list.CursorUp()
+		case tea.MouseButtonWheelDown:
+			p.list.CursorDown()
+		}
+	}
 }
 
 // ============== 视图方法 ==============
@@ -405,6 +445,11 @@ func (p *ProjectListPage) viewAdd() string {
 		nameStyle = focusedInput
 	}
 
+	var errDisplay string
+	if p.errMsg != "" {
+		errDisplay = ui.ErrorBoxStyle.Width(dialogWidth - 6).Render("✗ " + p.errMsg)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
@@ -423,6 +468,7 @@ func (p *ProjectListPage) viewAdd() string {
 				lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render("项目名称"),
 				nameStyle.Render(p.secondaryInput.View()),
 				"",
+				errDisplay,
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
@@ -450,6 +496,11 @@ func (p *ProjectListPage) viewRename() string {
 		nameStyle = focusedInput
 	}
 
+	var errDisplay string
+	if p.errMsg != "" {
+		errDisplay = ui.ErrorBoxStyle.Width(dialogWidth - 6).Render("✗ " + p.errMsg)
+	}
+
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
@@ -468,6 +519,7 @@ func (p *ProjectListPage) viewRename() string {
 				lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render("项目名称"),
 				nameStyle.Render(p.secondaryInput.View()),
 				"",
+				errDisplay,
 				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("[Enter] 确认  ·  [Tab] 切换  ·  [Esc] 取消"),
 			),
 		)
@@ -611,6 +663,10 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		p.list.CursorDown()
 	case "k", "up":
 		p.list.CursorUp()
+	case "pgup", "pgdown", "home", "end":
+		var cmd tea.Cmd
+		p.list, cmd = p.list.Update(msg)
+		return cmd
 	case "/":
 		p.app.SwitchPage(p.app.searchPage)
 		p.app.searchPage.OnActivate()
@@ -626,8 +682,9 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		p.secondaryInput.SetValue("")
 		p.secondaryInput.Blur()
 		p.tempPath = ""
+		p.errMsg = ""
 		return textinput.Blink
-	case "e":
+	case "r":
 		if current := p.safeGetSelectedProject(); current != nil {
 			p.state = ProjectStateRename
 			p.editingID = current.ID
@@ -638,8 +695,16 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			p.secondaryInput.SetValue(current.Alias)
 			p.secondaryInput.Placeholder = "输入项目名称"
 			p.secondaryInput.Blur()
+			p.errMsg = ""
 		}
 		return textinput.Blink
+	case "e":
+		if current := p.safeGetSelectedProject(); current != nil {
+			p.ta.SetValue(current.Description)
+			p.ta.Focus()
+			p.state = ProjectStateEditDescription
+			p.errMsg = ""
+		}
 	case "d":
 		if p.safeGetSelectedProject() != nil {
 			p.state = ProjectStateDeleteConfirm
@@ -648,12 +713,6 @@ func (p *ProjectListPage) handleListKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		if len(p.list.Items()) > 0 {
 			p.state = ProjectStateViewDetail
 			p.updateViewport()
-		}
-	case "r":
-		if current := p.safeGetSelectedProject(); current != nil {
-			p.ta.SetValue(current.Description)
-			p.ta.Focus()
-			p.state = ProjectStateEditDescription
 		}
 	case "enter":
 		if p.safeGetSelectedProject() != nil {
@@ -702,17 +761,30 @@ func (p *ProjectListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 
-		if path != "" && name != "" {
-			project := models.Project{
-				ID:        generateID(),
-				Path:      path,
-				Alias:     name,
-				CreatedAt: time.Now(),
-			}
-			p.store.Add(project)
-			p.syncListItems()
-			p.state = ProjectStateList
+		if p.store.PathExists(path) {
+			p.errMsg = "该项目已存在"
+			return nil
 		}
+
+		// 名称为空时自动从路径提取
+		if name == "" {
+			name = defaultAliasForPath(path)
+			if name == "" {
+				p.errMsg = "项目名称不能为空"
+				return nil
+			}
+			p.secondaryInput.SetValue(name)
+		}
+
+		project := models.Project{
+			ID:        generateID(),
+			Path:      path,
+			Alias:     name,
+			CreatedAt: time.Now(),
+		}
+		p.store.Add(project)
+		p.syncListItems()
+		p.state = ProjectStateList
 	case "tab":
 		if p.inputFocus == FocusPath {
 			p.inputFocus = FocusName
@@ -733,15 +805,13 @@ func (p *ProjectListPage) handleAddKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		path := p.input.Value()
 		if path != p.tempPath {
 			p.tempPath = path
-			defaultAlias := filepath.Base(path)
-			if defaultAlias == "" || defaultAlias == "/" || defaultAlias == "\\" {
-				defaultAlias = ""
-			}
-			p.secondaryInput.SetValue(defaultAlias)
+			p.secondaryInput.SetValue(defaultAliasForPath(path))
 		}
 	} else {
 		p.secondaryInput, cmd = p.secondaryInput.Update(msg)
 	}
+	// 输入变化时清除上一次的校验错误
+	p.errMsg = ""
 	return cmd
 }
 
@@ -751,13 +821,15 @@ func (p *ProjectListPage) handleRenameKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		path := p.input.Value()
 		name := p.secondaryInput.Value()
 		if p.editingID != "" {
-			if path != "" {
-				current := p.store.Get(p.editingID)
-				if current != nil && current.Path != path {
-					if err := p.store.ValidatePath(path); err != nil {
-						p.errMsg = err.Error()
-						return nil
-					}
+			current := p.store.Get(p.editingID)
+			if current != nil && path != "" && path != current.Path {
+				if err := p.store.ValidatePath(path); err != nil {
+					p.errMsg = err.Error()
+					return nil
+				}
+				if p.store.PathExists(path) {
+					p.errMsg = "该项目已存在"
+					return nil
 				}
 			}
 			if name != "" || path != "" {
@@ -788,6 +860,8 @@ func (p *ProjectListPage) handleRenameKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	} else {
 		p.secondaryInput, cmd = p.secondaryInput.Update(msg)
 	}
+	// 输入变化时清除上一次的校验错误
+	p.errMsg = ""
 	return cmd
 }
 
@@ -863,6 +937,10 @@ func (p *ProjectListPage) openWithIDE(ideType models.IDEType) tea.Cmd {
 			return errMsg{err: fmt.Errorf("未选择项目")}
 		}
 	}
+	if !p.app.IDEExec().IsIDEAvailable(ideType) {
+		p.app.ShowToast("IDE 不可用", string(ToastError))
+		return nil
+	}
 	projectID := current.ID
 	proj := *current
 	return func() tea.Msg {
@@ -908,6 +986,10 @@ func (p *ProjectListPage) renderHelpText() string {
 				),
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
 					ui.HelpKeyActionStyle.Render("[r]"),
+					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("改名"),
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, " ",
+					ui.HelpKeyActionStyle.Render("[e]"),
 					lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("描述"),
 				),
 				lipgloss.JoinHorizontal(lipgloss.Left, " ",
@@ -931,7 +1013,12 @@ func (p *ProjectListPage) renderHelpText() string {
 }
 
 func (p *ProjectListPage) syncListItems() {
-	p.list.SetItems(newListItems(p.store.Projects))
+	projects := p.store.Projects
+	p.list.SetItems(newListItems(projects))
+	// 列表变短后修正选中项，避免光标落在窗口外
+	if len(projects) > 0 && p.list.Index() >= len(projects) {
+		p.list.Select(len(projects) - 1)
+	}
 }
 
 func (p *ProjectListPage) safeGetSelectedProject() *models.Project {
@@ -988,6 +1075,11 @@ func (p *ProjectListPage) updateViewport() {
 		lastOpenedColor = ui.AccentCyan
 	}
 
+	lastOpenedText := proj.LastOpened.Format("2006-01-02 15:04:05")
+	if proj.LastOpened.IsZero() {
+		lastOpenedText = "从未打开"
+	}
+
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render(proj.Alias),
@@ -997,7 +1089,7 @@ func (p *ProjectListPage) updateViewport() {
 		infoLine("路径", proj.Path),
 		infoLine("打开次数", openCountBadge),
 		infoLine("创建时间", lipgloss.NewStyle().Foreground(createdColor).Render(proj.CreatedAt.Format("2006-01-02 15:04:05"))),
-		infoLine("最后打开", lipgloss.NewStyle().Foreground(lastOpenedColor).Render(proj.LastOpened.Format("2006-01-02 15:04:05"))),
+		infoLine("最后打开", lipgloss.NewStyle().Foreground(lastOpenedColor).Render(lastOpenedText)),
 		"",
 		lipgloss.NewStyle().Foreground(ui.SecondaryText).Bold(true).MarginTop(1).Render("描述"),
 		"",
@@ -1022,4 +1114,13 @@ func generateID() string {
 	b := make([]byte, 8)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// defaultAliasForPath 从路径中提取默认项目名称
+func defaultAliasForPath(path string) string {
+	alias := filepath.Base(path)
+	if alias == "" || alias == "/" || alias == "\\" {
+		return ""
+	}
+	return alias
 }

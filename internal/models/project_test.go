@@ -738,3 +738,26 @@ func TestProjectStore_RebuildIndex(t *testing.T) {
 		t.Error("id2 should be accessible after rebuildIndex")
 	}
 }
+
+func TestProjectStore_PathExists(t *testing.T) {
+	store := NewProjectStore()
+	store.Add(Project{ID: "id1", Path: "/projects/alpha", Alias: "Alpha"})
+
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{"已存在的路径", "/projects/alpha", true},
+		{"未收录的路径", "/projects/beta", false},
+		{"空路径", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := store.PathExists(tt.path); got != tt.want {
+				t.Errorf("PathExists(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}

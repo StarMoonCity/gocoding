@@ -96,7 +96,7 @@ func (p *SearchPage) SetSize(width, height int) {
 	p.height = height
 
 	// 动态计算列表尺寸
-	listWidth := min(80, max(50, width-4))
+	listWidth := max(60, width-10)
 	listHeight := max(8, height-10)
 	p.list.SetSize(listWidth, listHeight)
 }
@@ -157,7 +157,7 @@ func (p *SearchPage) viewList() string {
 	if searchValue == "" {
 		searchValue = lipgloss.NewStyle().Foreground(ui.MutedText).Render("输入关键词")
 	}
-	borderColor := ui.PrimaryDim
+	borderColor := ui.FocusBorder
 	if p.searchQuery != "" {
 		borderColor = ui.AccentCyan
 	}
@@ -165,7 +165,7 @@ func (p *SearchPage) viewList() string {
 	searchBox := lipgloss.NewStyle().
 		Width(searchBoxWidth).
 		Foreground(ui.Foreground).
-		Background(ui.BackgroundSurface).
+		Background(ui.FocusBg).
 		Border(lipgloss.RoundedBorder(), false, false, false, true).
 		BorderForeground(borderColor).
 		Padding(0, 1).
@@ -177,7 +177,7 @@ func (p *SearchPage) viewList() string {
 	var statusText string
 	if p.searchQuery != "" {
 		if matchCount > 0 {
-			statusText = lipgloss.NewStyle().Foreground(ui.SuccessColor).Render(
+			statusText = lipgloss.NewStyle().Foreground(ui.AccentCyan).Render(
 				fmt.Sprintf("匹配 %d/%d 项目", matchCount, totalCount),
 			)
 		} else {
@@ -231,20 +231,22 @@ func (p *SearchPage) viewList() string {
 		helpText,
 	)
 
-	// 上下居中，左右左对齐带间距
-	return lipgloss.Place(p.width, p.height, lipgloss.Left, lipgloss.Center,
-		lipgloss.JoinHorizontal(lipgloss.Left, "  ", mainContent),
-	)
+	// 全屏背景，左对齐垂直居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Left, lipgloss.Center).
+		Render(lipgloss.JoinHorizontal(lipgloss.Left, "  ", mainContent))
 }
 
 func (p *SearchPage) viewIDEMenu() string {
-	return lipgloss.Place(
-		p.width,
-		p.height,
-		lipgloss.Center,
-		lipgloss.Center,
-		p.ideMenu.View(p.width, p.height),
-	)
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(p.ideMenu.View(p.width, p.height))
 }
 
 // ============== 处理器 ==============

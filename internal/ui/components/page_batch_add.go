@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -117,7 +118,7 @@ func (p *BatchAddPage) View(width, height int) string {
 		cursor := "  "
 
 		if i == p.cursor {
-			cursor = lipgloss.NewStyle().Foreground(ui.PrimaryColor).Render("▸ ")
+			cursor = lipgloss.NewStyle().Foreground(ui.SelectedBorder).Render("▸ ")
 		}
 		checkbox := "[ ]"
 		if isSelected {
@@ -129,11 +130,17 @@ func (p *BatchAddPage) View(width, height int) string {
 		truncatedPath := truncatePath(path, maxPathWidth)
 
 		itemText := cursor + checkbox + "  " + truncatedPath
-		// 高亮当前选中行
+		// 高亮当前选中行 - 手动填充背景
+		var itemBg lipgloss.Color
 		if i == p.cursor {
-			itemStyle := lipgloss.NewStyle().
-				Background(ui.BackgroundHover)
-			itemText = itemStyle.Render(itemText)
+			itemBg = ui.SelectedBg
+		} else {
+			itemBg = ui.BackgroundSurface
+		}
+		itemBgStyle := lipgloss.NewStyle().Background(itemBg)
+		itemWidth := lipgloss.Width(itemText)
+		if itemWidth < contentWidth {
+			itemText += itemBgStyle.Render(strings.Repeat(" ", contentWidth-itemWidth))
 		}
 		items = append(items, itemText)
 	}
@@ -186,14 +193,14 @@ func (p *BatchAddPage) View(width, height int) string {
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.AccentGold).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(ui.AccentGold).Bold(true).Render("＋ 批量添加项目"),
+				lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("＋ 批量添加项目"),
 				"",
 				lipgloss.NewStyle().Foreground(ui.ForegroundDim).Render("~/.claude/projects"),
 				"",
@@ -208,8 +215,13 @@ func (p *BatchAddPage) View(width, height int) string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 // truncatePath 截断长路径，保持可读性

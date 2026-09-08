@@ -1,63 +1,70 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
-// 霓虹风格颜色系统 - 深色背景 + 青色主色调
+// Graphite Teal 暗色主题 - 语义化颜色系统
 var (
 	// 背景层次（从深到浅）
-	BackgroundDeep    = lipgloss.Color("#0A0E14") // 最深背景（近黑）
-	Background        = lipgloss.Color("#11151C") // 主背景
-	BackgroundSurface = lipgloss.Color("#1A2332") // 面板/卡片
-	BackgroundLight   = lipgloss.Color("#243246") // 表面层
-	BackgroundHover   = lipgloss.Color("#2D3B4F") // 悬停状态
+	BackgroundDeep    = lipgloss.Color("#090C10") // 最深层，强调层次区域
+	Background        = lipgloss.Color("#0D1117") // 应用全屏画布背景
+	BackgroundSurface = lipgloss.Color("#161B22") // 页头、页脚、弹窗、输入框、面板
+	BackgroundLight   = lipgloss.Color("#21262D") // 按钮、徽章、次级表面
+	BackgroundHover   = lipgloss.Color("#292F36") // 鼠标悬停状态
 
-	// 主色调 - 柔和青色系（护眼）
-	PrimaryColor    = lipgloss.Color("#4DB6AC") // 柔和青色
-	PrimaryColorAlt = lipgloss.Color("#26A69A") // 备用青色
-	PrimaryDim      = lipgloss.Color("#00796B") // 深青色
-	PrimaryDark     = lipgloss.Color("#004D40") // 最深青
-	PrimaryGlow     = lipgloss.Color("#4DB6AC") // 发光色（同主色）
+	// 主色调 - 品牌青色系
+	PrimaryColor    = lipgloss.Color("#56B6C2") // 页面标题、焦点边框、主要操作
+	PrimaryColorAlt = lipgloss.Color("#3FA7B3") // 品牌层次
+	PrimaryDim      = lipgloss.Color("#397C84") // 普通强调边框和分隔线
+	PrimaryDark     = lipgloss.Color("#294F55") // 弱分隔线
 
-	// 状态色 - 柔和色系
-	SuccessColor = lipgloss.Color("#4CAF50") // 柔和绿色（非霓虹）
-	WarningColor = lipgloss.Color("#FFB300") // 琥珀色
-	ErrorColor   = lipgloss.Color("#E57373") // 柔和红色
-	ErrorDim     = lipgloss.Color("#B06060") // 深红
+	// 状态色
+	SuccessColor = lipgloss.Color("#3FB950") // 成功、可用、激活
+	WarningColor = lipgloss.Color("#D29922") // 警告、最近打开提示
+	ErrorColor   = lipgloss.Color("#F85149") // 错误和危险操作
+	ErrorDim     = lipgloss.Color("#A83A3A") // 错误背景或弱错误边框
 
 	// 文字色（层次分明）
-	Foreground    = lipgloss.Color("#FFFFFF") // 主文字（纯白）
-	ForegroundDim = lipgloss.Color("#E0E6ED") // 次级文字
-	SecondaryText = lipgloss.Color("#8892A0") // 中性文字
-	MutedText     = lipgloss.Color("#4A5568") // 淡化文字
+	Foreground    = lipgloss.Color("#E6EDF3") // 主要文字
+	ForegroundDim = lipgloss.Color("#B1BAC4") // 次级文字、路径、说明
+	SecondaryText = lipgloss.Color("#8B949E") // 帮助文本、非关键元数据
+	MutedText     = lipgloss.Color("#6E7681") // 占位符、不可用内容
 
-	// 选中/激活状态（霓虹发光效果）
-	SelectedBg     = lipgloss.Color("#0D3B4D") // 选中背景
-	SelectedBgAlt  = lipgloss.Color("#1A4A5E") // 选中背景备用
-	SelectedBorder = lipgloss.Color("#00E5FF") // 选中边框（发光）
+	// 选中/激活状态
+	SelectedBg     = lipgloss.Color("#1B3438") // 键盘当前项整行背景
+	SelectedBgAlt  = lipgloss.Color("#23454A") // 选中且激活的组合状态
+	SelectedBorder = lipgloss.Color("#56B6C2") // 当前项左侧指示条
 
 	// 悬停状态
-	HoverBg     = lipgloss.Color("#1E3A5F") // 悬停背景
-	HoverBorder = lipgloss.Color("#00D4FF") // 悬停边框
+	HoverBg     = lipgloss.Color("#292F36") // 鼠标悬停背景
+	HoverBorder = lipgloss.Color("#397C84") // 鼠标悬停指示条
 
 	// 输入框焦点
-	FocusBorder = lipgloss.Color("#00E5FF") // 焦点边框
-	FocusBg     = lipgloss.Color("#0D2A36") // 焦点背景
+	FocusBorder = lipgloss.Color("#56B6C2") // 焦点边框
+	FocusBg     = lipgloss.Color("#14272A") // 焦点背景
 
-	// 特殊效果色 - 柔和色系（舒适护眼）
-	AccentCyan    = lipgloss.Color("#5BBFBA") // 柔和青色（非霓虹）
-	AccentMagenta = lipgloss.Color("#B060B0") // 柔和洋红（非霓虹）
-	AccentGold    = lipgloss.Color("#D4A574") // 柔和金色（非霓虹）
+	// 功能色
+	AccentCyan    = lipgloss.Color("#58A6FF") // 搜索、信息状态
+	AccentMagenta = lipgloss.Color("#B060B0") // 保留变量，不再作为页面主色
+	AccentGold    = lipgloss.Color("#D29922") // 少量重要标记
 
-	// IDE 品牌色 - 柔和色系
-	IDEClaudeColor   = lipgloss.Color("#E6A370") // 柔和橙色 - Claude
-	IDEVSCodeColor   = lipgloss.Color("#4A90A4") // 柔和蓝色 - VSCode
-	IDEOpenCodeColor = lipgloss.Color("#4CAF50") // 柔和绿色 - OpenCode
-	IDECodexColor    = lipgloss.Color("#9B6B9B") // 柔和洋红 - Codex
+	// IDE 品牌色 - 仅用于 IDE 标识和状态点
+	IDEClaudeColor   = lipgloss.Color("#E6A370") // Claude
+	IDEVSCodeColor   = lipgloss.Color("#4A90A4") // VSCode
+	IDEOpenCodeColor = lipgloss.Color("#4CAF50") // OpenCode
+	IDECodexColor    = lipgloss.Color("#9B6B9B") // Codex
+
+	// 语义化背景（消息框、按钮等使用）
+	ErrorBgDim   = lipgloss.Color("#1A0D10") // 错误弱背景
+	SuccessBgDim = lipgloss.Color("#0A1F12") // 成功弱背景
+	TipBgDim     = lipgloss.Color("#0A1A1F") // 提示弱背景
+	ActiveBgDim  = lipgloss.Color("#1B3438") // 激活弱背景（同 SelectedBg）
 )
 
-// 边框定义 - 霓虹风格
+// 边框定义 - 圆角单线
 var (
 	// 标准圆角边框
 	NeonBorder = lipgloss.Border{
@@ -71,7 +78,7 @@ var (
 		BottomRight: "╯",
 	}
 
-	// 双线边框（对话框用）
+	// 双线边框（保留兼容）
 	DoubleNeonBorder = lipgloss.Border{
 		Top:         "═",
 		Bottom:      "═",
@@ -83,7 +90,7 @@ var (
 		BottomRight: "╝",
 	}
 
-	// 强调边框（顶部亮色）
+	// 强调边框（保留兼容）
 	TopHeavyBorder = lipgloss.Border{
 		Top:         "═",
 		Bottom:      "─",
@@ -98,7 +105,7 @@ var (
 
 // 通用样式定义
 var (
-	// 标题样式 - 霓虹发光效果
+	// 标题样式
 	TitleStyle = lipgloss.NewStyle().
 			Foreground(PrimaryColor).
 			Bold(true).
@@ -112,12 +119,13 @@ var (
 			BorderForeground(PrimaryDim).
 			Padding(1, 2)
 
-	// 选中项样式 - 霓虹发光
+	// 选中项样式 - 整行高亮
 	SelectedItemStyle = lipgloss.NewStyle().
 				Foreground(Foreground).
 				Background(SelectedBg).
+				Bold(true).
 				BorderLeft(true).
-				BorderLeftForeground(PrimaryColor).
+				BorderLeftForeground(SelectedBorder).
 				Padding(0, 1)
 
 	// 普通项样式
@@ -165,7 +173,7 @@ var (
 			Padding(0, 1).
 			MarginLeft(1)
 
-	// 焦点输入框样式 - 霓虹发光边框
+	// 焦点输入框样式
 	FocusedInputBorder = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), false, false, false, true).
 				BorderForeground(FocusBorder).
@@ -174,7 +182,7 @@ var (
 	// 普通输入框样式
 	InputBorder = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder(), false, false, false, true).
-			BorderForeground(SecondaryText).
+			BorderForeground(PrimaryDark).
 			Background(BackgroundSurface)
 )
 
@@ -188,32 +196,32 @@ func GetStatusStyle(available bool) lipgloss.Style {
 		Foreground(WarningColor)
 }
 
-// 消息框样式 - 霓虹风格
+// 消息框样式
 var (
-	// ErrorBoxStyle 错误消息框 - 霓虹红边框
+	// ErrorBoxStyle 错误消息框
 	ErrorBoxStyle = lipgloss.NewStyle().
 			Foreground(ErrorColor).
-			Background(lipgloss.Color("#1A0D10")).
+			Background(ErrorBgDim).
 			Padding(1, 2).
 			MarginBottom(1).
 			Border(NeonBorder).
-			BorderForeground(ErrorColor).
+			BorderForeground(ErrorDim).
 			Width(40)
 
-	// TipBoxStyle 提示消息框 - 霓虹青边框
+	// TipBoxStyle 提示消息框
 	TipBoxStyle = lipgloss.NewStyle().
 			Foreground(PrimaryColor).
-			Background(lipgloss.Color("#0A1A1F")).
+			Background(TipBgDim).
 			Padding(1, 2).
 			MarginBottom(1).
 			Border(NeonBorder).
 			BorderForeground(PrimaryDim).
 			Width(40)
 
-	// SuccessBoxStyle 成功消息框 - 霓虹绿边框
+	// SuccessBoxStyle 成功消息框
 	SuccessBoxStyle = lipgloss.NewStyle().
 			Foreground(SuccessColor).
-			Background(lipgloss.Color("#0A1F12")).
+			Background(SuccessBgDim).
 			Padding(1, 2).
 			MarginBottom(1).
 			Border(NeonBorder).
@@ -221,27 +229,27 @@ var (
 			Width(40)
 )
 
-// HelpKeyStyle 快捷键样式 - 高亮显示 (默认青色)
+// HelpKeyStyle 快捷键样式
 var HelpKeyStyle = lipgloss.NewStyle().
 	Foreground(PrimaryColor).
 	Bold(true)
 
-// HelpKey 分类样式 - 按操作类型颜色编码
+// HelpKey 分类样式
 var (
-	HelpKeyNavStyle    = lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true)  // 导航: 青色
-	HelpKeyActionStyle = lipgloss.NewStyle().Foreground(AccentGold).Bold(true)    // 操作: 金色
-	HelpKeyDangerStyle = lipgloss.NewStyle().Foreground(ErrorColor).Bold(true)    // 危险: 红色
-	HelpKeyQuitStyle   = lipgloss.NewStyle().Foreground(SecondaryText).Bold(true) // 退出: 灰色
-	HelpKeySearchStyle = lipgloss.NewStyle().Foreground(AccentCyan).Bold(true)    // 搜索: 亮青
+	HelpKeyNavStyle    = lipgloss.NewStyle().Foreground(PrimaryColor).Bold(true)  // 导航
+	HelpKeyActionStyle = lipgloss.NewStyle().Foreground(AccentGold).Bold(true)    // 操作
+	HelpKeyDangerStyle = lipgloss.NewStyle().Foreground(ErrorColor).Bold(true)    // 危险
+	HelpKeyQuitStyle   = lipgloss.NewStyle().Foreground(SecondaryText).Bold(true) // 退出
+	HelpKeySearchStyle = lipgloss.NewStyle().Foreground(AccentCyan).Bold(true)    // 搜索
 )
 
 // TitleBarStyle 标题栏样式
 var TitleBarStyle = lipgloss.NewStyle().
 	Foreground(PrimaryColor).
 	Bold(true).
-	Background(BackgroundDeep)
+	Background(BackgroundSurface)
 
-// TitleTextStyle 标题文字样式 - 发光效果
+// TitleTextStyle 标题文字样式
 var TitleTextStyle = lipgloss.NewStyle().
 	Foreground(PrimaryColor).
 	Bold(true)
@@ -250,11 +258,11 @@ var TitleTextStyle = lipgloss.NewStyle().
 var SeparatorStyle = lipgloss.NewStyle().
 	Foreground(PrimaryDark)
 
-// SeparatorHighlightStyle 高亮分隔线（用于区段分隔）
+// SeparatorHighlightStyle 高亮分隔线
 var SeparatorHighlightStyle = lipgloss.NewStyle().
 	Foreground(PrimaryDim)
 
-// FeaturedBadgeStyle 突出显示徽章（金色，用于重要/活跃标记）
+// FeaturedBadgeStyle 突出显示徽章
 var FeaturedBadgeStyle = lipgloss.NewStyle().
 	Foreground(BackgroundDeep).
 	Background(AccentGold).
@@ -262,10 +270,10 @@ var FeaturedBadgeStyle = lipgloss.NewStyle().
 	MarginLeft(1).
 	Bold(true)
 
-// ActiveBadgeStyle 激活状态徽章（柔和绿色背景）
+// ActiveBadgeStyle 激活状态徽章
 var ActiveBadgeStyle = lipgloss.NewStyle().
-	Foreground(Foreground).
-	Background(lipgloss.Color("#2D5A4A")).
+	Foreground(SuccessColor).
+	Background(ActiveBgDim).
 	Padding(0, 1).
 	MarginLeft(1).
 	Bold(true)
@@ -274,9 +282,9 @@ var ActiveBadgeStyle = lipgloss.NewStyle().
 var ListItemStyle = lipgloss.NewStyle().
 	Foreground(Foreground)
 
-// SelectedListItemStyle 选中列表项样式 - 霓虹高亮
+// SelectedListItemStyle 选中列表项样式
 var SelectedListItemStyle = lipgloss.NewStyle().
-	Foreground(PrimaryColor).
+	Foreground(Foreground).
 	Bold(true)
 
 // ButtonStyle 按钮样式
@@ -286,10 +294,10 @@ var ButtonStyle = lipgloss.NewStyle().
 	Padding(0, 2).
 	Margin(0, 1)
 
-// ButtonHoverStyle 按钮悬停样式 - 霓虹效果
+// ButtonHoverStyle 按钮悬停样式
 var ButtonHoverStyle = lipgloss.NewStyle().
-	Foreground(Background).
-	Background(PrimaryColor).
+	Foreground(Foreground).
+	Background(BackgroundHover).
 	Padding(0, 2).
 	Margin(0, 1).
 	Bold(true)
@@ -297,13 +305,13 @@ var ButtonHoverStyle = lipgloss.NewStyle().
 // DangerButtonStyle 危险按钮样式
 var DangerButtonStyle = lipgloss.NewStyle().
 	Foreground(ErrorColor).
-	Background(lipgloss.Color("#1A0D10")).
+	Background(ErrorBgDim).
 	Padding(0, 2).
 	Margin(0, 1)
 
-// DangerButtonHoverStyle 危险按钮悬停样式
+// DangerButtonHoverStyle 危险按钮悬停/聚焦样式
 var DangerButtonHoverStyle = lipgloss.NewStyle().
-	Foreground(Foreground).
+	Foreground(Background).
 	Background(ErrorColor).
 	Padding(0, 2).
 	Margin(0, 1).
@@ -312,46 +320,45 @@ var DangerButtonHoverStyle = lipgloss.NewStyle().
 // SuccessButtonStyle 成功按钮样式
 var SuccessButtonStyle = lipgloss.NewStyle().
 	Foreground(SuccessColor).
-	Background(lipgloss.Color("#0A1F12")).
+	Background(SuccessBgDim).
 	Padding(0, 2).
 	Margin(0, 1)
 
-// 对话框样式 - 双线霓虹边框
+// 对话框样式 - 圆角单线边框
 var DialogStyle = lipgloss.NewStyle().
 	Background(BackgroundSurface).
 	Foreground(Foreground).
-	Border(DoubleNeonBorder).
-	BorderForeground(PrimaryColor).
+	Border(NeonBorder).
+	BorderForeground(PrimaryDim).
 	Padding(1, 3)
 
-// Provider 表单样式 - 强调边框
+// Provider 表单样式
 var ProviderFormStyle = lipgloss.NewStyle().
 	Background(BackgroundSurface).
 	Foreground(Foreground).
-	Border(TopHeavyBorder).
-	BorderForeground(PrimaryColor).
+	Border(NeonBorder).
+	BorderForeground(PrimaryDim).
 	Padding(1, 2)
 
-// Provider 列表项样式 - 与面板背景一致，避免深色色块
+// Provider 列表项样式 - 普通状态
 var ProviderItemStyle = lipgloss.NewStyle().
 	Foreground(Foreground).
 	Background(BackgroundSurface).
 	Padding(0, 1)
 
-// Provider 选中项样式 - 霓虹发光
+// Provider 选中项样式
 var ProviderSelectedItemStyle = lipgloss.NewStyle().
 	Foreground(Foreground).
 	Background(SelectedBg).
-	Foreground(PrimaryColor).
+	Bold(true).
 	BorderLeft(true).
-	BorderLeftForeground(PrimaryColor).
+	BorderLeftForeground(SelectedBorder).
 	Padding(0, 1)
 
-// Provider 激活项样式 - 柔和发光
+// Provider 激活项样式 - 不使用大面积绿色背景
 var ProviderActiveItemStyle = lipgloss.NewStyle().
 	Foreground(Foreground).
-	Background(lipgloss.Color("#2D5A4A")). // 柔和绿色背景
-	Bold(true).
+	Background(BackgroundSurface).
 	Padding(0, 1)
 
 // Provider 输入框样式
@@ -373,14 +380,14 @@ var ProviderFocusedInputStyle = lipgloss.NewStyle().
 // HeaderStyle 顶部标题栏样式
 var HeaderStyle = lipgloss.NewStyle().
 	Foreground(PrimaryColor).
-	Background(BackgroundDeep).
+	Background(BackgroundSurface).
 	Bold(true).
 	Padding(0, 1)
 
 // FooterStyle 底部状态栏样式
 var FooterStyle = lipgloss.NewStyle().
 	Foreground(SecondaryText).
-	Background(BackgroundLight).
+	Background(BackgroundSurface).
 	Padding(0, 1)
 
 // 悬停样式（动态使用）
@@ -400,4 +407,34 @@ func ActiveStyle() lipgloss.Style {
 		Background(PrimaryColor).
 		Bold(true).
 		Padding(0, 1)
+}
+
+// FillBackground 强制将每一行填充到指定宽度，确保无透明区域
+// 对已渲染的带 ANSI 样式的内容，逐行补齐背景色空格
+func FillBackground(content string, width, height int) string {
+	if width <= 0 || height <= 0 {
+		return content
+	}
+
+	bgStyle := lipgloss.NewStyle().Background(Background)
+	lines := strings.Split(content, "\n")
+
+	// 补齐行数到 height
+	for len(lines) < height {
+		lines = append(lines, "")
+	}
+	// 截断多余行
+	if len(lines) > height {
+		lines = lines[:height]
+	}
+
+	for i, line := range lines {
+		lineWidth := lipgloss.Width(line)
+		if lineWidth < width {
+			padding := strings.Repeat(" ", width-lineWidth)
+			lines[i] = line + bgStyle.Render(padding)
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }

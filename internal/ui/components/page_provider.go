@@ -177,8 +177,8 @@ func (p *ProviderListPage) SetSize(width, height int) {
 	p.width = width
 	p.height = height
 
-	// 动态计算列表尺寸
-	listWidth := min(80, max(50, width-4))
+	// 动态计算列表尺寸 - 与 dialog 内容宽度保持一致
+	listWidth := p.providerListWidth()
 	listHeight := max(8, height-10)
 	p.list.SetSize(listWidth, listHeight)
 }
@@ -314,6 +314,7 @@ func (p *ProviderListPage) viewList() string {
 
 	listView := lipgloss.NewStyle().
 		Width(contentWidth).
+		Background(ui.BackgroundSurface).
 		Align(lipgloss.Center).
 		Render(p.list.View())
 
@@ -334,14 +335,14 @@ func (p *ProviderListPage) viewList() string {
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.AccentMagenta).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("⚙ 模型配置"),
+				lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("⚙ 模型配置"),
 				"",
 				listView,
 				errDisplay,
@@ -350,8 +351,13 @@ func (p *ProviderListPage) viewList() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProviderListPage) viewAdd() string {
@@ -385,7 +391,7 @@ func (p *ProviderListPage) viewAdd() string {
 
 	// 构建完整内容用于计算
 	var allLines []string
-	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"))
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("＋ 新增配置"))
 
 	for _, inp := range inputs {
 		style := inactiveInput
@@ -468,20 +474,25 @@ func (p *ProviderListPage) viewAdd() string {
 		Width(dialogWidth).
 		Height(dialogHeight).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.AccentMagenta).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("＋ 新增配置"),
+				lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("＋ 新增配置"),
 				content,
 				lipgloss.JoinVertical(lipgloss.Center, bottomLines...),
 			),
 		)
 
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProviderListPage) viewEdit() string {
@@ -515,7 +526,7 @@ func (p *ProviderListPage) viewEdit() string {
 
 	// 构建完整内容用于计算
 	var allLines []string
-	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"))
+	allLines = append(allLines, lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("✎ 编辑配置"))
 
 	for _, inp := range inputs {
 		style := inactiveInput
@@ -598,20 +609,25 @@ func (p *ProviderListPage) viewEdit() string {
 		Width(dialogWidth).
 		Height(dialogHeight).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.AccentMagenta).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(ui.AccentMagenta).Bold(true).Render("✎ 编辑配置"),
+				lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("✎ 编辑配置"),
 				content,
 				lipgloss.JoinVertical(lipgloss.Center, bottomLines...),
 			),
 		)
 
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProviderListPage) viewDeleteConfirm() string {
@@ -631,20 +647,20 @@ func (p *ProviderListPage) viewDeleteConfirm() string {
 	dialogWidth := min(50, max(35, int(float64(p.width)*0.6)))
 	buttonWidth := 10
 
-	confirmStyle := lipgloss.NewStyle().Width(buttonWidth).Foreground(ui.ErrorColor).Background(lipgloss.Color("#1A0D10")).Padding(0, 2)
+	confirmStyle := ui.DangerButtonStyle.Width(buttonWidth)
 	if p.hoverButton == 1 {
-		confirmStyle = confirmStyle.Background(ui.ErrorColor).Foreground(ui.Background).Bold(true)
+		confirmStyle = ui.DangerButtonHoverStyle.Width(buttonWidth)
 	}
 
-	cancelStyle := lipgloss.NewStyle().Width(buttonWidth).Foreground(ui.SecondaryText).Background(ui.BackgroundLight).Padding(0, 2)
+	cancelStyle := ui.ButtonStyle.Width(buttonWidth)
 	if p.hoverButton == 0 {
-		cancelStyle = cancelStyle.Background(ui.BackgroundHover).Foreground(ui.Foreground)
+		cancelStyle = ui.ButtonHoverStyle.Width(buttonWidth)
 	}
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.ErrorColor).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
@@ -662,7 +678,12 @@ func (p *ProviderListPage) viewDeleteConfirm() string {
 		)
 
 	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 // ============== 处理器 ==============
@@ -1137,9 +1158,9 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 
 	provider := p.provider
 	isSelected := index == m.Index()
+	listWidth := m.Width()
 
-	accentClr := providerAccentColor(provider.BaseURL)
-
+	// 激活标签
 	activeTag := ""
 	if provider.Active {
 		activeTag = ui.ActiveBadgeStyle.Render("● 激活")
@@ -1147,51 +1168,44 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 
 	selector := "  "
 	if isSelected {
-		selector = lipgloss.NewStyle().Foreground(accentClr).Render("▸ ")
+		selector = lipgloss.NewStyle().Foreground(ui.SelectedBorder).Render("▸ ")
 	}
 
 	selectorWidth := lipgloss.Width(selector)
 	activeWidth := lipgloss.Width(activeTag)
-	nameWidth := m.Width() - selectorWidth
+	nameWidth := listWidth - selectorWidth
 	if activeWidth > 0 {
 		nameWidth -= activeWidth + 1
 	}
-	nameWidth = min(nameWidth, 40) // 最大 40，防止溢出
+	nameWidth = min(nameWidth, 40)
 	nameWidth = max(8, nameWidth)
 
 	name := provider.Name
 
-	var firstLine string
-	nameStyle := ui.ProviderItemStyle
-	if isSelected && provider.Active {
-		nameStyle = ui.ProviderActiveItemStyle
-	} else if isSelected {
-		nameStyle = ui.ProviderSelectedItemStyle
-	} else if provider.Active {
-		nameStyle = ui.ProviderActiveItemStyle
-	}
-
+	// 第一行：名称
+	var firstLineContent string
 	if provider.Active {
-		firstLine = lipgloss.JoinHorizontal(
+		firstLineContent = lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			selector,
-			nameStyle.Bold(true).Width(nameWidth).Render(name),
+			lipgloss.NewStyle().Foreground(ui.Foreground).Bold(true).Width(nameWidth).Render(name),
 			ui.ActiveBadgeStyle.Render("● 激活"),
 		)
 	} else if isSelected {
-		firstLine = lipgloss.JoinHorizontal(
+		firstLineContent = lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			selector,
-			nameStyle.Bold(true).Width(nameWidth).Render(name),
+			lipgloss.NewStyle().Foreground(ui.Foreground).Bold(true).Width(nameWidth).Render(name),
 		)
 	} else {
-		firstLine = lipgloss.JoinHorizontal(
+		firstLineContent = lipgloss.JoinHorizontal(
 			lipgloss.Left,
 			selector,
-			nameStyle.Width(nameWidth).Render(name),
+			lipgloss.NewStyle().Foreground(ui.Foreground).Width(nameWidth).Render(name),
 		)
 	}
 
+	// 第二行：URL 和模型
 	infoText := provider.BaseURL
 	if provider.Model != "" {
 		infoText += " • " + provider.Model
@@ -1200,41 +1214,35 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 	if !provider.Active {
 		infoColor = ui.ForegroundDim
 	}
-	// selector 空白对齐
 	selectorSpaces := strings.Repeat(" ", selectorWidth)
-	availableWidth := m.Width() - selectorWidth
+	availableWidth := listWidth - selectorWidth
 	if lipgloss.Width(infoText) > availableWidth {
 		infoText = infoText[:availableWidth-3] + "..."
 	}
-	// 第二行背景与面板一致，避免与第一行有色差
-	secondLine := lipgloss.NewStyle().
+	secondLineContent := lipgloss.NewStyle().
 		Foreground(infoColor).
-		Background(ui.BackgroundSurface).
-		Width(selectorWidth + lipgloss.Width(infoText)).
 		Render(selectorSpaces + infoText)
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Left,
-		firstLine,
-		secondLine,
-	)
+	// 组合两行并统一应用背景
+	twoLines := lipgloss.JoinVertical(lipgloss.Left, firstLineContent, secondLineContent)
 
-	fmt.Fprintf(w, "%s", content)
-}
-
-// providerAccentColor 根据 URL 返回 provider 类型色彩提示
-func providerAccentColor(url string) lipgloss.Color {
-	lower := strings.ToLower(url)
-	switch {
-	case strings.Contains(lower, "anthropic"):
-		return ui.AccentGold
-	case strings.Contains(lower, "minimax"):
-		return ui.AccentMagenta
-	case strings.Contains(lower, "openai"):
-		return ui.SuccessColor
-	case strings.Contains(lower, "deepseek"):
-		return ui.AccentCyan
-	default:
-		return ui.PrimaryColor
+	var rowBg lipgloss.Color
+	if isSelected {
+		rowBg = ui.SelectedBg
+	} else {
+		rowBg = ui.BackgroundSurface
 	}
+
+	// 逐行填充背景色，确保无透明区域
+	bgStyle := lipgloss.NewStyle().Background(rowBg)
+	rowLines := strings.Split(twoLines, "\n")
+	for i, line := range rowLines {
+		lw := lipgloss.Width(line)
+		if lw < listWidth {
+			rowLines[i] = line + bgStyle.Render(strings.Repeat(" ", listWidth-lw))
+		}
+	}
+	row := strings.Join(rowLines, "\n")
+
+	fmt.Fprintf(w, "%s", row)
 }

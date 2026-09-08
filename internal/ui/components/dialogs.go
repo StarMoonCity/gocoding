@@ -1,6 +1,8 @@
 package components
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 
 	"gocoding/internal/models"
@@ -50,7 +52,7 @@ func (m *IDEMenu) View(width, height int) string {
 		var prefix string
 		var nameStyle lipgloss.Style
 		if isSelected {
-			prefix = lipgloss.NewStyle().Foreground(ideClr).Render("▸ ")
+			prefix = lipgloss.NewStyle().Foreground(ui.SelectedBorder).Render("▸ ")
 			nameStyle = lipgloss.NewStyle().Foreground(ideClr).Bold(true)
 		} else {
 			prefix = "  "
@@ -65,11 +67,26 @@ func (m *IDEMenu) View(width, height int) string {
 		}
 
 		colorBar := lipgloss.NewStyle().Foreground(ideClr).Render("▌")
-		options = append(options,
-			prefix+statusIcon+"  "+
-				nameStyle.Render(opt.Name)+
-				lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("  "+opt.Description)+
-				" "+colorBar)
+		optionContent := prefix + statusIcon + "  " +
+			nameStyle.Render(opt.Name) +
+			lipgloss.NewStyle().Foreground(ui.SecondaryText).Render("  "+opt.Description) +
+			" " + colorBar
+
+		// 整行背景 - 手动填充确保无透明区域
+		dialogWidth := min(45, max(35, int(float64(width)*0.5)))
+		optionWidth := dialogWidth - 6
+		var optBg lipgloss.Color
+		if isSelected {
+			optBg = ui.SelectedBg
+		} else {
+			optBg = ui.BackgroundSurface
+		}
+		optBgStyle := lipgloss.NewStyle().Background(optBg)
+		optWidth := lipgloss.Width(optionContent)
+		if optWidth < optionWidth {
+			optionContent += optBgStyle.Render(strings.Repeat(" ", optionWidth-optWidth))
+		}
+		options = append(options, optionContent)
 	}
 
 	dialogWidth := min(45, max(35, int(float64(width)*0.5)))
@@ -77,14 +94,14 @@ func (m *IDEMenu) View(width, height int) string {
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.AccentCyan).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
 		Render(
 			lipgloss.JoinVertical(
 				lipgloss.Center,
-				lipgloss.NewStyle().Foreground(ui.AccentCyan).Bold(true).Render("▣ "+m.title),
+				lipgloss.NewStyle().Foreground(ui.PrimaryColor).Bold(true).Render("▣ "+m.title),
 				"",
 				lipgloss.JoinVertical(lipgloss.Left, options...),
 				"",

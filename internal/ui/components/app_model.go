@@ -9,6 +9,7 @@ import (
 
 	"gocoding/internal/commands"
 	"gocoding/internal/models"
+	"gocoding/internal/ui"
 )
 
 // AppModel 路由中枢 - 精简版只负责组合和路由
@@ -175,6 +176,11 @@ func (m *AppModel) View() string {
 		content += "\n" + m.renderDebugPanel()
 	}
 
+	// 全屏背景：逐行填充确保无透明区域
+	if m.width > 0 && m.height > 0 {
+		content = ui.FillBackground(content, m.width, m.height)
+	}
+
 	return content
 }
 
@@ -228,7 +234,7 @@ func (m *AppModel) renderDebugPanel() string {
 		pageName = pageTypeName(m.currentPage.PageType())
 	}
 	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#666")).
+		Foreground(ui.MutedText).
 		Render(fmt.Sprintf("Page: %s | Size: %dx%d | Key: %s", pageName, m.width, m.height, m.lastKey))
 }
 

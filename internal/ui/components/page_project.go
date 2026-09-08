@@ -48,12 +48,13 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 	}
 
 	isSelected := item == m.SelectedItem()
+	listWidth := m.Width()
 
 	separator := ui.SeparatorStyle.Render(" │ ")
 
 	selector := "  "
 	if isSelected {
-		selector = lipgloss.NewStyle().Foreground(ui.AccentGold).Render("▸ ")
+		selector = lipgloss.NewStyle().Foreground(ui.SelectedBorder).Render("▸ ")
 	}
 
 	var namePart string
@@ -68,9 +69,9 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 			after := alias[idx+len(query):]
 			if isSelected {
 				namePart = lipgloss.JoinHorizontal(lipgloss.Left,
-					ui.SelectedListItemStyle.Bold(true).Render(before),
+					ui.SelectedListItemStyle.Render(before),
 					lipgloss.NewStyle().Foreground(ui.AccentGold).Bold(true).Render(match),
-					ui.SelectedListItemStyle.Bold(true).Render(after),
+					ui.SelectedListItemStyle.Render(after),
 				)
 			} else {
 				namePart = lipgloss.JoinHorizontal(lipgloss.Left,
@@ -81,14 +82,14 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 			}
 		} else {
 			if isSelected {
-				namePart = ui.SelectedListItemStyle.Bold(true).Render(alias)
+				namePart = ui.SelectedListItemStyle.Render(alias)
 			} else {
 				namePart = ui.ListItemStyle.Render(alias)
 			}
 		}
 	} else {
 		if isSelected {
-			namePart = ui.SelectedListItemStyle.Bold(true).Render(alias)
+			namePart = ui.SelectedListItemStyle.Render(alias)
 		} else {
 			namePart = ui.ListItemStyle.Render(alias)
 		}
@@ -96,7 +97,7 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 
 	var recentDot string
 	if time.Since(proj.project.LastOpened) < 1*time.Hour {
-		recentDot = lipgloss.NewStyle().Foreground(ui.AccentGold).Render("•")
+		recentDot = lipgloss.NewStyle().Foreground(ui.WarningColor).Render("•")
 	}
 
 	var countBadge string
@@ -115,7 +116,21 @@ func (d projectListDelegate) Render(w io.Writer, m list.Model, index int, item l
 		countBadge,
 	)
 
-	fmt.Fprintf(w, "%s", content)
+	// 整行背景 - 逐行填充确保无透明区域
+	var rowBg lipgloss.Color
+	if isSelected {
+		rowBg = ui.SelectedBg
+	} else {
+		rowBg = ui.Background
+	}
+	bgStyle := lipgloss.NewStyle().Background(rowBg)
+	contentWidth := lipgloss.Width(content)
+	if contentWidth < listWidth {
+		content += bgStyle.Render(strings.Repeat(" ", listWidth-contentWidth))
+	}
+	row := content
+
+	fmt.Fprintf(w, "%s", row)
 }
 
 // ProjectListPage 项目列表页面 - 完全自治
@@ -237,8 +252,8 @@ func (p *ProjectListPage) SetSize(width, height int) {
 	p.width = width
 	p.height = height
 
-	// 动态计算列表尺寸
-	listWidth := min(80, max(50, width-4))
+	// 动态计算列表尺寸 - 与 viewList 的 contentWidth 保持一致
+	listWidth := max(60, width-10)
 	listHeight := max(8, height-10)
 	p.list.SetSize(listWidth, listHeight)
 }
@@ -328,18 +343,10 @@ func (p *ProjectListPage) HandleMouse(msg tea.MouseMsg) {
 // ============== 视图方法 ==============
 
 func (p *ProjectListPage) viewList() string {
-	gradientBar := lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		lipgloss.NewStyle().Foreground(ui.PrimaryColor).Render("█"),
-		lipgloss.NewStyle().Foreground(ui.PrimaryColorAlt).Render("▓"),
-		lipgloss.NewStyle().Foreground(ui.PrimaryDim).Render("▒"),
-		lipgloss.NewStyle().Foreground(ui.PrimaryDark).Render("░"),
-	)
 	titleText := lipgloss.NewStyle().
 		Foreground(ui.PrimaryColor).
 		Bold(true).
 		Render("  Gocoding · 项目管理")
-	headerBlock := lipgloss.JoinVertical(lipgloss.Left, gradientBar, titleText)
 
 	helpNav := p.renderHelpText()
 	content := p.list.View()
@@ -366,18 +373,22 @@ func (p *ProjectListPage) viewList() string {
 		helpNav,
 	)
 
-	// 整体内容区域 - 左对齐带间距，垂直居中
+	// 整体内容区域 - 带背景确保无透明区域
 	contentWidth := max(60, p.width-10)
 	fullContent := lipgloss.NewStyle().
 		Width(contentWidth).
+		Background(ui.Background).
 		Render(
-			lipgloss.JoinVertical(lipgloss.Left, headerBlock, listContent),
+			lipgloss.JoinVertical(lipgloss.Left, titleText, listContent),
 		)
 
-	// 上下居中，左右左对齐带间距
-	return lipgloss.Place(p.width, p.height, lipgloss.Left, lipgloss.Center,
-		lipgloss.JoinHorizontal(lipgloss.Left, "  ", fullContent),
-	)
+	// 全屏背景，左对齐垂直居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Left, lipgloss.Center).
+		Render(lipgloss.JoinHorizontal(lipgloss.Left, "  ", fullContent))
 }
 
 func (p *ProjectListPage) viewAdd() string {
@@ -416,8 +427,13 @@ func (p *ProjectListPage) viewAdd() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProjectListPage) viewRename() string {
@@ -456,8 +472,13 @@ func (p *ProjectListPage) viewRename() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProjectListPage) viewDeleteConfirm() string {
@@ -469,20 +490,20 @@ func (p *ProjectListPage) viewDeleteConfirm() string {
 	dialogWidth := min(50, max(35, int(float64(p.width)*0.6)))
 	buttonWidth := 10
 
-	confirmStyle := lipgloss.NewStyle().Width(buttonWidth).Foreground(ui.ErrorColor).Background(lipgloss.Color("#1A0D10")).Padding(0, 2)
+	confirmStyle := ui.DangerButtonStyle.Width(buttonWidth)
 	if p.hoverButton == 1 {
-		confirmStyle = confirmStyle.Background(ui.ErrorColor).Foreground(ui.Background).Bold(true)
+		confirmStyle = ui.DangerButtonHoverStyle.Width(buttonWidth)
 	}
 
-	cancelStyle := lipgloss.NewStyle().Width(buttonWidth).Foreground(ui.SecondaryText).Background(ui.BackgroundLight).Padding(0, 2)
+	cancelStyle := ui.ButtonStyle.Width(buttonWidth)
 	if p.hoverButton == 0 {
-		cancelStyle = cancelStyle.Background(ui.BackgroundHover).Foreground(ui.Foreground)
+		cancelStyle = ui.ButtonHoverStyle.Width(buttonWidth)
 	}
 
 	dialog := lipgloss.NewStyle().
 		Width(dialogWidth).
 		Border(ui.NeonBorder).
-		BorderForeground(ui.ErrorColor).
+		BorderForeground(ui.PrimaryDim).
 		Background(ui.BackgroundSurface).
 		Foreground(ui.Foreground).
 		Padding(1, 2).
@@ -499,18 +520,22 @@ func (p *ProjectListPage) viewDeleteConfirm() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProjectListPage) viewIDEMenu() string {
-	return lipgloss.Place(
-		p.width,
-		p.height,
-		lipgloss.Center,
-		lipgloss.Center,
-		p.ideMenu.View(p.width, p.height),
-	)
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(p.ideMenu.View(p.width, p.height))
 }
 
 func (p *ProjectListPage) viewDetail() string {
@@ -536,8 +561,13 @@ func (p *ProjectListPage) viewDetail() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 func (p *ProjectListPage) viewEditDesc() string {
@@ -564,8 +594,13 @@ func (p *ProjectListPage) viewEditDesc() string {
 			),
 		)
 
-	// 上下左右居中
-	return lipgloss.Place(p.width, p.height, lipgloss.Center, lipgloss.Center, dialog)
+	// 全屏背景居中
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Background(ui.Background).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(dialog)
 }
 
 // ============== 处理器 ==============

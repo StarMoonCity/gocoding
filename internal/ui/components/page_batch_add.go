@@ -221,7 +221,7 @@ func (p *BatchAddPage) View(width, height int) string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 // truncatePath 截断长路径，保持可读性

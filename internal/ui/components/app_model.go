@@ -180,6 +180,8 @@ func (m *AppModel) View() string {
 	if m.width > 0 && m.height > 0 {
 		content = ui.FillBackground(content, m.width, m.height)
 	}
+	// 补齐所有未着色单元格，避免浅色终端透出白底
+	content = ui.FillGaps(content, ui.Background)
 
 	return content
 }

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -407,6 +408,98 @@ func ActiveStyle() lipgloss.Style {
 		Background(PrimaryColor).
 		Bold(true).
 		Padding(0, 1)
+}
+
+// FillGaps 为内容中所有没有背景色的单元格补上指定背景色
+// lipgloss 在拼接、对齐和 Width 填充时会产生带 reset 的裸文本和空格，
+// 这些单元格会透出终端自身背景（浅色终端下呈现白块），这里统一补齐
+func FillGaps(content string, bg lipgloss.TerminalColor) string {
+	bgSeq := lipgloss.NewStyle().Background(bg).Render(" ")
+	// 取出背景色转义序列前缀，例如 "\x1b[48;2;13;17;23m"
+	end := strings.Index(bgSeq, "m")
+	if !strings.HasPrefix(bgSeq, "\x1b[") || end < 0 {
+		return content
+	}
+	bgPrefix := bgSeq[:end+1]
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		lines[i] = fillLineGaps(line, bgPrefix)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// fillLineGaps 处理单行：在没有背景色的文本片段前插入背景色序列
+func fillLineGaps(line, bgPrefix string) string {
+	var sb strings.Builder
+	bgSet := false
+	injected := false
+
+	for i := 0; i < len(line); {
+		if line[i] == '\x1b' {
+			seqEnd := strings.IndexByte(line[i:], 'm')
+			if seqEnd < 0 {
+				sb.WriteString(line[i:])
+				break
+			}
+			seq := line[i : i+seqEnd+1]
+			bgSet = sgrSetsBackground(seq, bgSet)
+			sb.WriteString(seq)
+			i += seqEnd + 1
+			continue
+		}
+
+		next := strings.IndexByte(line[i:], '\x1b')
+		if next < 0 {
+			next = len(line) - i
+		}
+		if !bgSet {
+			sb.WriteString(bgPrefix)
+			injected = true
+		}
+		sb.WriteString(line[i : i+next])
+		i += next
+	}
+
+	if injected && !strings.HasSuffix(sb.String(), "\x1b[0m") {
+		sb.WriteString("\x1b[0m")
+	}
+	return sb.String()
+}
+
+// sgrSetsBackground 判断 SGR 序列执行后是否仍有背景色生效
+func sgrSetsBackground(seq string, current bool) bool {
+	params := strings.TrimSuffix(strings.TrimPrefix(seq, "\x1b["), "m")
+	if params == "" {
+		return false
+	}
+	codes := strings.Split(params, ";")
+	for idx := 0; idx < len(codes); idx++ {
+		n, err := strconv.Atoi(codes[idx])
+		if err != nil {
+			continue
+		}
+		switch {
+		case n == 0 || n == 49:
+			current = false
+		case n == 38 || n == 48 || n == 58:
+			if n == 48 {
+				current = true
+			}
+			// 跳过扩展颜色参数：38/48;5;n 或 38/48;2;r;g;b
+			if idx+1 < len(codes) {
+				switch codes[idx+1] {
+				case "5":
+					idx += 2
+				case "2":
+					idx += 4
+				}
+			}
+		case (n >= 40 && n <= 47) || (n >= 100 && n <= 107):
+			current = true
+		}
+	}
+	return current
 }
 
 // FillBackground 强制将每一行填充到指定宽度，确保无透明区域

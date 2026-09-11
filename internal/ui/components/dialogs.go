@@ -111,5 +111,5 @@ func (m *IDEMenu) View(width, height int) string {
 			),
 		)
 
-	return dialog
+	return ui.FillGaps(dialog, ui.BackgroundSurface)
 }

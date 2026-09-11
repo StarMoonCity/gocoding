@@ -479,7 +479,7 @@ func (p *ProjectListPage) viewAdd() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProjectListPage) viewRename() string {
@@ -530,7 +530,7 @@ func (p *ProjectListPage) viewRename() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProjectListPage) viewDeleteConfirm() string {
@@ -578,7 +578,7 @@ func (p *ProjectListPage) viewDeleteConfirm() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProjectListPage) viewIDEMenu() string {
@@ -619,7 +619,7 @@ func (p *ProjectListPage) viewDetail() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProjectListPage) viewEditDesc() string {
@@ -652,7 +652,7 @@ func (p *ProjectListPage) viewEditDesc() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 // ============== 处理器 ==============

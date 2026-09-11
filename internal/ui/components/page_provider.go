@@ -357,7 +357,7 @@ func (p *ProviderListPage) viewList() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProviderListPage) viewAdd() string {
@@ -492,7 +492,7 @@ func (p *ProviderListPage) viewAdd() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProviderListPage) viewEdit() string {
@@ -627,7 +627,7 @@ func (p *ProviderListPage) viewEdit() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 func (p *ProviderListPage) viewDeleteConfirm() string {
@@ -683,7 +683,7 @@ func (p *ProviderListPage) viewDeleteConfirm() string {
 		Height(p.height).
 		Background(ui.Background).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dialog)
+		Render(ui.FillGaps(dialog, ui.BackgroundSurface))
 }
 
 // ============== 处理器 ==============
@@ -1230,7 +1230,7 @@ func (d providerListDelegate) Render(w io.Writer, m list.Model, index int, item 
 
 	// 逐行填充背景色，确保无透明区域
 	bgStyle := lipgloss.NewStyle().Background(rowBg)
-	rowLines := strings.Split(twoLines, "\n")
+	rowLines := strings.Split(ui.FillGaps(twoLines, rowBg), "\n")
 	for i, line := range rowLines {
 		lw := lipgloss.Width(line)
 		if lw < listWidth {
